@@ -1,0 +1,15 @@
+{
+  "name": "维刻时钟",
+  "short_name": "维刻时钟",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1a2e",
+  "theme_color": "#0b1a2e",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

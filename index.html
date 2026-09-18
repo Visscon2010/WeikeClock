@@ -6,8 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#0b1a2e">
+<link rel="manifest" href="manifest.json">
 <title>维刻时钟 Preserve Moment Clock</title>
-    <link rel="icon" href="logo.svg" type="image/svg+xml">
 <style>
     :root {
         --clock-font-size: clamp(64px, 14vw, 96px);
@@ -38,17 +39,9 @@
         position: relative;
     }
 
-    /* ===== 全局半透明滚动条 ===== */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.08);
-        border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.3);
-        border-radius: 10px;
-        transition: background 0.2s ease;
-    }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.08); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.45); }
     * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) rgba(255,255,255,0.08); }
 
@@ -57,7 +50,6 @@
         stroke: currentColor; fill: none;
         stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
         vertical-align: middle;
-        transition: stroke 0.2s ease;
     }
     .btn-icon-tomato {
         width: 20px; height: 20px;
@@ -73,27 +65,39 @@
     }
     .sky-bg {
         position: absolute; inset: 0;
-        transition: background 2s ease;
+        transition: background 1.2s linear;
     }
+    body.modal-open .sky-bg { transition: none; }
+
     .sun, .moon {
-        position: absolute; border-radius: 50%; z-index: 2;
-        transition: transform 0.8s ease, opacity 1s ease;
+        position: absolute;
+        top: 50%; left: 50%;
+        border-radius: 50%;
+        z-index: 4;
+        transition: transform 1s linear, opacity 1s linear;
         opacity: 0;
+        pointer-events: none;
+        will-change: transform, opacity;
     }
+    body.modal-open .sun,
+    body.modal-open .moon { transition: none; }
     .sun {
         width: 64px; height: 64px;
+        margin: -32px 0 0 -32px;
         background: radial-gradient(circle,#e8f4ff,#b3d8ff 45%,#64a8ff);
         box-shadow: 0 0 40px #82bdff, 0 0 80px #428bff;
     }
     .moon {
         width: 56px; height: 56px;
+        margin: -28px 0 0 -28px;
         background: radial-gradient(circle,#e6edf7,#b8c8e2 45%,#788cb8);
         box-shadow: 0 0 30px #a1b4d8, 0 0 60px #697fa8;
     }
+
     .star, .rain { position: absolute; pointer-events: none; }
     .star {
         width: 2px; height: 2px; border-radius: 50%;
-        background: #fff; opacity: 0;
+        background: #fff;
         animation: twinkle 3s ease-in-out infinite;
     }
     .rain {
@@ -102,11 +106,25 @@
         animation: rainFall 0.8s linear infinite;
     }
 
+    /* 星空 / 雨滴图层：平滑淡入淡出 */
+    .stars-layer, .rain-layer {
+        position: absolute; inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 1.5s ease;
+        z-index: 2;
+    }
+    .stars-layer.show, .rain-layer.show { opacity: 1; }
+
+    body.modal-open .star,
+    body.modal-open .rain { animation-play-state: paused; }
+
     .top-toast, .confirm-modal {
         position: absolute; left: 50%;
         transform: translateX(-50%);
         background: var(--panel-bg);
-        backdrop-filter: blur(12px);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border-radius: 10px; color: #fff;
         z-index: 999; display: none;
     }
@@ -129,17 +147,11 @@
         border: 1px solid rgba(255,255,255,0.3);
         background: rgba(255,255,255,0.22);
         color: #fff; cursor: pointer;
-        transition: all 0.2s ease;
     }
     .confirm-ok:hover {
         transform: translateY(-1px);
         background: rgba(255,255,255,0.32);
         border-color: rgba(255,255,255,0.45);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    }
-    .confirm-ok:active {
-        transform: translateY(0) scale(0.96);
-        filter: brightness(1.3);
     }
 
     .top-left-setting {
@@ -153,6 +165,7 @@
         display: flex; align-items: center; justify-content: center;
         background: var(--btn-bg);
         backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         color: #fff;
         border: 1px solid rgba(255,255,255,0.25);
         border-radius: 8px; cursor: pointer;
@@ -169,26 +182,17 @@
         border-color: rgba(255, 140, 150, 0.5);
         box-shadow: 0 0 16px rgba(255, 95, 110, 0.25);
     }
-    .focus-btn.active:hover {
-        background: rgba(255, 110, 125, 0.45);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 18px rgba(255, 95, 110, 0.3);
-    }
-    .setting-btn:active, .focus-btn:active, .toggle-btn:active {
-        transform: translateY(0) scale(0.96);
-        filter: brightness(1.25);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
 
     .setting-panel {
         margin-top: 8px;
         padding: var(--panel-padding);
         background: var(--panel-bg);
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         border-radius: 10px;
         border: 1px solid rgba(255,255,255,0.2);
         color: #fff; display: none;
-        min-width: 320px;
+        min-width: 340px;
         max-height: calc(80vh - env(safe-area-inset-top));
         overflow-y: auto;
         z-index: 200;
@@ -197,12 +201,76 @@
     }
     .setting-panel.show { display: block; }
 
+    .setting-section-title {
+        font-size: 11px;
+        letter-spacing: 2px;
+        opacity: 0.5;
+        margin: 14px 0 8px;
+        text-transform: uppercase;
+    }
+    .setting-section-title:first-child { margin-top: 0; }
+
     .setting-row {
         margin-bottom: 12px;
         display: flex; align-items: center;
         justify-content: space-between; gap: 12px;
     }
     .setting-row-sub { margin: 6px 0 6px 16px; }
+
+    .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .slider-row input[type="range"] {
+        flex: 1;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 4px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .slider-row input[type="range"]:hover {
+        background: rgba(255,255,255,0.28);
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(135,206,235,0.7);
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        box-shadow: 0 0 14px rgba(135,206,235,1);
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb:active {
+        transform: scale(1.05);
+    }
+    .slider-row input[type="range"]::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 10px rgba(135,206,235,0.7);
+    }
+    .slider-value {
+        min-width: 44px;
+        text-align: right;
+        font-size: 12px;
+        opacity: 0.75;
+        font-variant-numeric: tabular-nums;
+    }
 
     .toggle {
         position: relative;
@@ -227,6 +295,25 @@
     .toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); }
     body.day-theme .toggle input:checked + .toggle-track { background: var(--toggle-on-sun); }
 
+    .setting-action-btn {
+        width: 100%; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 6px;
+        background: var(--btn-bg);
+        color: #fff;
+        font-size: var(--ui-font);
+        font-family: inherit;
+        cursor: pointer;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+    .setting-action-btn:hover {
+        transform: translateY(-1px);
+        background: rgba(255,255,255,0.35);
+        border-color: rgba(255,255,255,0.4);
+    }
+
     .panel-wrap {
         position: absolute;
         top: calc(24px + env(safe-area-inset-top));
@@ -250,14 +337,14 @@
         margin-top: 8px;
         padding: var(--panel-padding);
         background: var(--panel-bg);
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         border-radius: 10px;
         border: 1px solid rgba(255,255,255,0.2);
         color: #fff; display: none;
         min-width: var(--panel-min-width);
         max-height: calc(70vh - env(safe-area-inset-top));
         overflow-y: auto;
-        text-align: left;
         font-size: var(--ui-font);
     }
     .panel.show { display: block; }
@@ -281,9 +368,10 @@
         background: rgba(255,255,255,0.18);
     }
     .todo-add-row input { flex: 1; text-align: left; width: auto; }
+    .exam-title-input { width: 100% !important; text-align: left !important; flex: 1 !important; }
     .input-unit { font-size: var(--ui-font); opacity: 0.85; }
 
-    .ctrl-buttons { display: flex; gap: 8px; justify-content: flex-start; }
+    .ctrl-buttons { display: flex; gap: 8px; }
     .ctrl-buttons button {
         flex: 1; height: 32px;
         display: flex; align-items: center; justify-content: center;
@@ -296,12 +384,15 @@
         transform: translateY(-1px);
         background: rgba(255,255,255,0.42);
         border-color: rgba(255,255,255,0.45);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
-    .ctrl-buttons button:active {
-        transform: translateY(0) scale(0.96);
-        filter: brightness(1.25);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    .ctrl-buttons button.wide { flex: 2; }
+    .ctrl-buttons button.danger {
+        border-color: rgba(255,140,150,0.5);
+        background: rgba(255,95,110,0.2);
+    }
+    .ctrl-buttons button.danger:hover {
+        background: rgba(255,95,110,0.35);
+        border-color: rgba(255,140,150,0.75);
     }
 
     .count-display {
@@ -310,7 +401,6 @@
         letter-spacing: 2px;
     }
 
-    /* ===== 待办面板 ===== */
     .todo-nav {
         display: flex; align-items: center;
         gap: 6px; margin-bottom: 10px;
@@ -327,14 +417,7 @@
         line-height: 1; font-family: inherit;
         transition: all 0.2s; flex-shrink: 0;
     }
-    .todo-nav-btn:hover {
-        background: rgba(255,255,255,0.35);
-        border-color: rgba(255,255,255,0.45);
-    }
-    .todo-nav-btn:active {
-        transform: scale(0.94);
-        filter: brightness(1.2);
-    }
+    .todo-nav-btn:hover { background: rgba(255,255,255,0.35); }
     .todo-nav-title {
         flex: 1; text-align: center;
         font-size: var(--ui-font);
@@ -344,23 +427,14 @@
     .todo-planned-row {
         display: flex; align-items: center;
         gap: 6px; margin-bottom: 12px;
-        font-size: var(--ui-font);
     }
     .todo-planned-row input {
-        width: 56px; padding: 6px 4px;
-        text-align: center;
+        width: 56px; padding: 6px 4px; text-align: center;
         background: rgba(255,255,255,0.12);
         border: 1px solid rgba(255,255,255,0.25);
         color: #fff; border-radius: 4px;
         font-size: var(--ui-font);
-        transition: border-color 0.2s ease, background 0.2s ease;
     }
-    .todo-planned-row input:focus {
-        outline: none;
-        border-color: rgba(255,255,255,0.45);
-        background: rgba(255,255,255,0.18);
-    }
-
     .todo-list {
         display: flex; flex-direction: column;
         gap: 8px; max-height: 220px;
@@ -377,13 +451,8 @@
     .todo-item.current { background: rgba(255,255,255,0.13); }
     .todo-item-text { flex: 1; font-size: var(--ui-font); }
     .todo-item-text.done { text-decoration: line-through; opacity: 0.55; }
-    .todo-del {
-        color: #ff9494; cursor: pointer;
-        transition: color 0.2s ease;
-        padding: 0 4px;
-    }
+    .todo-del { color: #ff9494; cursor: pointer; padding: 0 4px; }
     .todo-del:hover { color: #ff6b6b; }
-
     .todo-add-btn {
         width: 36px; height: 30px;
         display: flex; align-items: center; justify-content: center;
@@ -391,20 +460,7 @@
         border-radius: 4px;
         background: var(--btn-bg);
         color: #fff; cursor: pointer;
-        transition: all 0.2s ease;
     }
-    .todo-add-btn:hover {
-        transform: translateY(-1px);
-        background: rgba(255,255,255,0.42);
-        border-color: rgba(255,255,255,0.45);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    }
-    .todo-add-btn:active {
-        transform: translateY(0) scale(0.96);
-        filter: brightness(1.25);
-    }
-
-    /* ===== 待办面板底部：显示/隐藏学习条按钮 ===== */
     .todo-study-toggle {
         width: 100%; height: 30px;
         display: flex; align-items: center; justify-content: center;
@@ -414,45 +470,43 @@
         background: var(--btn-bg);
         color: #fff; font-size: var(--ui-font);
         font-family: inherit; cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .todo-study-toggle:hover {
-        transform: translateY(-1px);
-        background: rgba(255,255,255,0.42);
-        border-color: rgba(255,255,255,0.45);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    }
-    .todo-study-toggle:active {
-        transform: translateY(0) scale(0.97);
-        filter: brightness(1.25);
     }
 
-    /* ===== 计时器清除标记按钮（纯 CSS 交互） ===== */
-    #timerClearMarksBtn {
-        width: 100%; height: 32px;
-        display: flex; align-items: center; justify-content: center;
+    .timer-clear-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .timer-clear-row button {
+        flex: 1;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
         border: 1px solid rgba(255,255,255,0.35);
         border-radius: 6px;
-        cursor: pointer;
-        color: #fff;
         background: var(--btn-bg);
+        color: #fff;
         font-size: var(--ui-font);
         font-family: inherit;
+        cursor: pointer;
         transition: all 0.2s ease;
     }
-    #timerClearMarksBtn:hover {
+    .timer-clear-row button:hover {
         transform: translateY(-1px);
-        background: rgba(255,255,255,0.42);
+        background: rgba(255,255,255,0.35);
         border-color: rgba(255,255,255,0.45);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
-    #timerClearMarksBtn:active {
-        transform: translateY(0) scale(0.96);
-        filter: brightness(1.25);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    .timer-clear-row .timer-clear-danger {
+        border-color: rgba(255,140,150,0.5);
+        background: rgba(255,95,110,0.2);
+    }
+    .timer-clear-row .timer-clear-danger:hover {
+        background: rgba(255,95,110,0.35);
+        border-color: rgba(255,140,150,0.75);
     }
 
-    /* ===== 主屏幕学习控制条（独立组件，不依赖待办面板） ===== */
     .study-bar {
         position: absolute;
         bottom: calc(90px + env(safe-area-inset-bottom));
@@ -461,14 +515,13 @@
         align-items: center; gap: 8px;
         padding: 12px 20px;
         background: rgba(0,0,0,0.55);
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(255,255,255,0.2);
         border-radius: 14px; z-index: 20;
         min-width: 300px; max-width: 90vw;
-        transition: opacity 0.3s ease;
     }
     .study-bar.show { display: flex; }
-
     .study-task {
         color: rgba(255,255,255,0.9);
         font-size: var(--ui-font);
@@ -481,7 +534,6 @@
         color: #fff; font-size: 24px;
         letter-spacing: 3px;
         font-weight: 300;
-        text-shadow: 0 0 12px rgba(0,0,0,0.4);
     }
     .study-buttons { display: flex; gap: 8px; width: 100%; }
     .study-btn {
@@ -490,44 +542,31 @@
         background: var(--btn-bg);
         border: 1px solid rgba(255,255,255,0.35);
         border-radius: 6px; cursor: pointer;
-        transition: all 0.2s;
         font-family: inherit;
         white-space: nowrap;
-    }
-    .study-btn:hover:not(:disabled) {
-        background: rgba(255,255,255,0.4);
-        border-color: rgba(255,255,255,0.5);
-        transform: translateY(-1px);
-    }
-    .study-btn:active:not(:disabled) {
-        transform: translateY(0) scale(0.96);
     }
     .study-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .study-btn.study-start.active {
         background: rgba(80, 200, 120, 0.4);
         border-color: rgba(80, 200, 120, 0.7);
-        box-shadow: 0 0 12px rgba(80, 200, 120, 0.3);
     }
     .study-btn.study-break.active {
         background: rgba(255, 160, 80, 0.4);
         border-color: rgba(255, 160, 80, 0.7);
-        box-shadow: 0 0 12px rgba(255, 160, 80, 0.3);
     }
 
-    /* ===== 专注统计弹窗 ===== */
     .stats-modal {
         position: absolute;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         background: var(--panel-bg);
-        backdrop-filter: blur(15px);
+        backdrop-filter: blur(10px);
         border-radius: 12px;
         border: 1px solid rgba(255,255,255,0.2);
         color: #fff; z-index: 1000;
         display: none;
         min-width: 320px; max-width: 90vw;
         max-height: 70vh; overflow: hidden;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.5);
     }
     .stats-modal.show { display: flex; flex-direction: column; }
     .stats-modal-header {
@@ -535,7 +574,7 @@
         align-items: center;
         padding: 14px 16px;
         border-bottom: 1px solid rgba(255,255,255,0.15);
-        font-size: var(--ui-font); flex-shrink: 0;
+        font-size: var(--ui-font);
     }
     .stats-modal-close {
         width: 26px; height: 26px;
@@ -546,31 +585,13 @@
         color: #fff; cursor: pointer;
         font-size: 18px; line-height: 1;
         font-family: inherit;
-        transition: all 0.2s;
     }
-    .stats-modal-close:hover { background: rgba(255,255,255,0.28); }
-    .stats-modal-body {
-        padding: 12px 16px;
-        overflow-y: auto;
-        font-size: var(--ui-font);
-    }
-    .stats-item {
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
+    .stats-modal-body { padding: 12px 16px; overflow-y: auto; font-size: var(--ui-font); }
+    .stats-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .stats-item:last-child { border-bottom: none; }
-    .stats-item-name {
-        font-weight: 500;
-        margin-bottom: 6px; color: #fff;
-    }
-    .stats-item-row {
-        display: flex; justify-content: space-between;
-        opacity: 0.85; margin-bottom: 3px;
-    }
-    .stats-item-rate {
-        color: #7fd88a; font-weight: 500;
-        opacity: 1 !important;
-    }
+    .stats-item-name { font-weight: 500; margin-bottom: 6px; }
+    .stats-item-row { display: flex; justify-content: space-between; opacity: 0.85; margin-bottom: 3px; }
+    .stats-item-rate { color: #7fd88a; font-weight: 500; opacity: 1 !important; }
 
     .center-wrap {
         position: absolute; inset: 0; z-index: 5;
@@ -584,14 +605,12 @@
         display: none;
     }
     .pomodoro-top-inline.show { display: block; }
-
     .exam-count-wrap { margin-bottom: 12px; }
     .exam-count-text {
         color: #fff; font-size: var(--holiday-font-size);
         letter-spacing: 2px;
         text-shadow: 0 0 20px rgba(0,0,0,0.4);
     }
-
     .time-display {
         color: white;
         font-size: var(--clock-font-size);
@@ -601,30 +620,51 @@
         background: rgba(0,0,0,0.22);
         padding: 16px 36px;
         border-radius: 20px;
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
     }
     .ampm-tag { font-size: 0.5em; }
 
+    .countdown-progress-wrap {
+        margin-top: 18px;
+        width: min(420px, 80vw);
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+    .countdown-progress-wrap.show { display: flex; }
+    .countdown-progress-bar {
+        width: 100%; height: 4px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+    .countdown-progress-fill {
+        height: 100%; width: 0%;
+        background: linear-gradient(90deg, #428bff, #87CEEB);
+        border-radius: 2px;
+        box-shadow: 0 0 8px rgba(74, 144, 217, 0.5);
+    }
+    .countdown-progress-text {
+        color: rgba(255,255,255,0.9);
+        font-size: 14px; letter-spacing: 2px;
+    }
     .main-saying {
         margin-top: 24px;
         color: rgba(255,255,255,0.85);
         font-size: var(--quote-font-size);
         letter-spacing: 3px;
-        text-shadow: 0 0 18px rgba(0,0,0,0.35);
         text-align: center;
-        transition: opacity 0.3s ease;
     }
     body.focus-mode .main-saying { opacity: 0; }
-
     .holiday-countdown-text {
         margin-top: 12px;
         color: rgba(255,255,255,0.72);
         font-size: var(--holiday-font-size);
         letter-spacing: 2px; text-align: center;
-        transition: opacity 0.3s ease;
     }
     body.focus-mode .holiday-countdown-text { opacity: 0; }
-
     .weather-footer {
         position: absolute;
         bottom: calc(40px + env(safe-area-inset-bottom));
@@ -632,10 +672,8 @@
         color: rgba(255,255,255,0.75);
         font-size: var(--weather-font);
         z-index: 10; text-align: center;
-        transition: opacity 0.3s ease;
     }
     body.focus-mode .weather-footer { opacity: 0; }
-
     .copyright {
         position: absolute;
         bottom: calc(12px + env(safe-area-inset-bottom));
@@ -643,9 +681,84 @@
         color: rgba(255,255,255,0.45);
         font-size: var(--ui-font);
         z-index: 10;
-        transition: opacity 0.3s ease;
     }
     body.focus-mode .copyright { opacity: 0; }
+
+    .info-modal {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.78);
+        z-index: 2000;
+        display: none;
+        align-items: center; justify-content: center;
+        padding: 20px;
+    }
+    .info-modal.show { display: flex; }
+    .info-modal-inner {
+        background: rgba(15, 23, 42, 0.98);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 16px;
+        max-width: 520px; width: 100%;
+        max-height: 80vh;
+        display: flex; flex-direction: column;
+        color: #fff;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .info-modal-header {
+        padding: 22px 26px 14px;
+        font-size: 20px; font-weight: 500;
+        letter-spacing: 3px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .info-modal-body {
+        padding: 18px 26px;
+        overflow-y: auto;
+        font-size: 14px;
+        line-height: 1.85;
+        color: rgba(255,255,255,0.82);
+        flex: 1;
+    }
+    .info-modal-body p { margin-bottom: 12px; }
+    .info-modal-body strong { color: #87CEEB; font-weight: 500; }
+    .info-modal-body code {
+        background: rgba(255,255,255,0.1);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+    }
+    .info-modal-body .signature {
+        text-align: right;
+        color: rgba(255,255,255,0.5);
+        margin-top: 16px;
+        font-style: italic;
+    }
+    .info-modal-footer {
+        padding: 12px 22px 20px;
+        display: flex; gap: 10px;
+        justify-content: flex-end;
+        flex-shrink: 0;
+    }
+    .info-modal-btn {
+        padding: 10px 22px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.06);
+        color: #fff; cursor: pointer;
+        font-family: inherit;
+        font-size: 13px; letter-spacing: 1px;
+    }
+    .info-modal-btn:hover {
+        background: rgba(255,255,255,0.14);
+        border-color: rgba(255,255,255,0.32);
+    }
+    .info-modal-btn.primary {
+        background: rgba(66,139,255,0.28);
+        border-color: rgba(66,139,255,0.5);
+    }
+    .info-modal-btn.primary:hover {
+        background: rgba(66,139,255,0.42);
+        border-color: rgba(66,139,255,0.7);
+    }
 
     .small-input { width: 56px !important; }
     .pomodoro-row { margin-bottom: 8px; }
@@ -722,129 +835,82 @@
     </button>
 
     <div class="setting-panel" id="settingPanel">
+        <div class="setting-section-title">外观</div>
         <div class="setting-row">
             <span>使用12小时制</span>
-            <label class="toggle">
-                <input type="checkbox" id="use12Hour">
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="use12Hour"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
             <span>手机模式</span>
-            <label class="toggle">
-                <input type="checkbox" id="mobileMode">
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="mobileMode"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row"><span>时钟大小</span><div></div></div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="clockSize" value="small" id="clkS">小号
-            </label>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="clockSize" value="small" id="clkS">小号</label></div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="clockSize" value="medium" id="clkM" checked>中号</label></div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="clockSize" value="large" id="clkL">大号</label></div>
+
+        <div class="setting-row" style="margin-top:14px;"><span>时钟粗细</span><div></div></div>
+        <div class="slider-row">
+            <input type="range" id="clockWeight" min="100" max="900" step="50" value="300">
+            <span class="slider-value" id="clockWeightValue">300</span>
         </div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="clockSize" value="medium" id="clkM" checked>中号
-            </label>
-        </div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="clockSize" value="large" id="clkL">大号
-            </label>
-        </div>
-        <div class="setting-row"><span>时钟字重</span><div></div></div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="clockWeight" value="100" id="w100">细
-            </label>
-        </div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="clockWeight" value="300" id="w300" checked>标准
-            </label>
-        </div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="clockWeight" value="500" id="w500">粗
-            </label>
-        </div>
+
+        <div class="setting-section-title">模块显示</div>
         <div class="setting-row">
             <span>显示倒计时</span>
-            <label class="toggle">
-                <input type="checkbox" id="showCountdown" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="showCountdown" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
             <span>显示计时器</span>
-            <label class="toggle">
-                <input type="checkbox" id="showTimer" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="showTimer" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
             <span>显示待办</span>
-            <label class="toggle">
-                <input type="checkbox" id="showTodo" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="showTodo" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
             <span>显示学习控制条</span>
-            <label class="toggle">
-                <input type="checkbox" id="showStudyBar" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="showStudyBar" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
             <span>显示番茄钟按钮</span>
-            <label class="toggle">
-                <input type="checkbox" id="showPomodoro" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="showPomodoro" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
-            <span>显示考试倒计时</span>
-            <label class="toggle">
-                <input type="checkbox" id="showExam" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <span>显示倒计时按钮</span>
+            <label class="toggle"><input type="checkbox" id="showExam" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
             <span>显示天气</span>
-            <label class="toggle">
-                <input type="checkbox" id="showWeather" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="showWeather" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
         <div class="setting-row">
             <span>显示节假日倒计时</span>
-            <label class="toggle">
-                <input type="checkbox" id="showHoliday" checked>
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <label class="toggle"><input type="checkbox" id="showHoliday" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
-        <div class="setting-row"><span>名言模式</span><div></div></div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="sayingMode" value="off" id="sayingOff">关闭
-            </label>
+
+        <div class="setting-section-title">名言模式</div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="sayingMode" value="off" id="sayingOff">关闭</label></div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="sayingMode" value="static" id="sayingStatic" checked>静态句子</label></div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="sayingMode" value="daily" id="sayingDaily">每日一言</label></div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="sayingMode" value="poetry" id="sayingPoetry">每日诗词</label></div>
+
+        <div class="setting-section-title">提醒</div>
+        <div class="setting-row">
+            <span>声音提示</span>
+            <label class="toggle"><input type="checkbox" id="enableSound" checked><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
         </div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="sayingMode" value="static" id="sayingStatic" checked>静态句子
-            </label>
-        </div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="sayingMode" value="daily" id="sayingDaily">每日一言
-            </label>
-        </div>
-        <div class="setting-row-sub">
-            <label style="display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="sayingMode" value="poetry" id="sayingPoetry">每日诗词
-            </label>
-        </div>
+
+        <div class="setting-section-title">数据管理</div>
+        <button class="setting-action-btn" id="exportDataBtn">导出备份（JSON）</button>
+        <button class="setting-action-btn" id="importDataBtn">导入备份</button>
+        <input type="file" id="importFileInput" accept=".json" style="display:none">
+        <button class="setting-action-btn" id="openMiniBtn">迷你模式</button>
+
+        <div class="setting-section-title">关于</div>
+        <button class="setting-action-btn" id="openDevNoteBtn">再读一遍开发者的话</button>
+        <button class="setting-action-btn" id="openTutorialBtn">重新查看教程</button>
+        <button class="setting-action-btn" id="openShortcutsBtn">键盘快捷键</button>
     </div>
 </div>
 
@@ -868,6 +934,14 @@
                 <button id="pauseBtn" title="暂停">
                     <svg class="btn-icon" viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1.5"/><rect x="14" y="5" width="3" height="14" rx="1.5"/></svg>
                 </button>
+                <button id="countdownClearBtn" class="danger" title="清除倒计时">
+                    <svg class="btn-icon" viewBox="0 0 24 24">
+                        <path d="M3 6h18"/>
+                        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
@@ -879,25 +953,32 @@
         <div class="panel" id="timerPanel">
             <div class="count-display" style="font-size:24px;text-align:center;margin:16px 0;" id="timerDisplay">00:00.000</div>
             <div class="ctrl-buttons">
-                <button id="timerStart" title="开始">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-                <button id="timerPause" title="暂停">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1.5"/><rect x="14" y="5" width="3" height="14" rx="1.5"/></svg>
-                </button>
-                <button id="timerReset" title="重置">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
-                </button>
-                <button id="timerMark" title="标记">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M6 3v18"/><path d="M6 5h10l-2 4 2 4H6"/></svg>
-                </button>
+                <button id="timerStart" title="开始"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+                <button id="timerPause" title="暂停"><svg class="btn-icon" viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1.5"/><rect x="14" y="5" width="3" height="14" rx="1.5"/></svg></button>
+                <button id="timerReset" title="重置"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
+                <button id="timerMark" title="标记"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M6 3v18"/><path d="M6 5h10l-2 4 2 4H6"/></svg></button>
             </div>
             <div style="margin-top:12px;font-size:var(--ui-font);">
                 标记记录：
                 <div id="timerMarkLog" style="max-height:80px;overflow:auto;margin-top:4px;"></div>
             </div>
-            <div style="margin-top:10px;">
-                <button id="timerClearMarksBtn" title="清除标记">清除标记</button>
+
+            <div class="timer-clear-row">
+                <button id="timerClearMarksBtn" title="只清除标记记录">
+                    <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+                        <path d="M6 3v18"/><path d="M6 5h10l-2 4 2 4H6"/>
+                    </svg>
+                    <span>清除标记</span>
+                </button>
+                <button id="timerClearBtn" class="timer-clear-danger" title="停止计时、清零并清除所有标记">
+                    <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+                        <path d="M3 6h18"/>
+                        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                    </svg>
+                    <span>清除</span>
+                </button>
             </div>
         </div>
     </div>
@@ -912,10 +993,7 @@
                 <span class="todo-nav-title" id="todoNavTitle">暂无任务</span>
                 <button class="todo-nav-btn" id="todoNextBtn" title="下一个任务">›</button>
                 <button class="todo-nav-btn" id="todoStatsBtn" title="专注统计">
-                    <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-                        <path d="M3 3v18h18"/>
-                        <path d="M7 15l4-4 4 3 5-6"/>
-                    </svg>
+                    <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 4 3 5-6"/></svg>
                 </button>
             </div>
             <div class="todo-planned-row">
@@ -925,16 +1003,11 @@
             </div>
             <div class="todo-add-row">
                 <input type="text" id="todoInput" placeholder="输入待办事项">
-                <button class="todo-add-btn" id="todoAddBtn" title="添加">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
+                <button class="todo-add-btn" id="todoAddBtn" title="添加"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
             </div>
             <div class="todo-list" id="todoListBox"></div>
             <button class="todo-study-toggle" id="todoStudyToggle">
-                <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
+                <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
                 <span id="todoStudyToggleText">隐藏学习条</span>
             </button>
         </div>
@@ -957,51 +1030,38 @@
                 <input class="small-input" type="number" id="pomodoroRestMin" min="1" value="5"><span class="input-unit">分钟</span>
             </div>
             <div class="count-display" id="pomodoroCountStr">25分00秒</div>
-            <div style="font-size:var(--ui-font);margin-bottom:8px;">
-                当前：<span id="pomodoroModeText">工作</span>
-            </div>
+            <div style="font-size:var(--ui-font);margin-bottom:8px;">当前：<span id="pomodoroModeText">工作</span></div>
             <div class="ctrl-buttons">
-                <button id="pomodoroStart" title="开始">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-                <button id="pomodoroPause" title="暂停">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1.5"/><rect x="14" y="5" width="3" height="14" rx="1.5"/></svg>
-                </button>
-                <button id="pomodoroReset" title="重置">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
-                </button>
+                <button id="pomodoroStart" title="开始"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+                <button id="pomodoroPause" title="暂停"><svg class="btn-icon" viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1.5"/><rect x="14" y="5" width="3" height="14" rx="1.5"/></svg></button>
+                <button id="pomodoroReset" title="重置"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
             </div>
             <div class="setting-row" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.15);padding-top:12px;margin-bottom:0;">
                 <span>时钟上方显示倒计时</span>
-                <label class="toggle">
-                    <input type="checkbox" id="showPomodoroTop">
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
+                <label class="toggle"><input type="checkbox" id="showPomodoroTop"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
             </div>
         </div>
     </div>
 
     <div class="panel-item" id="itemExam">
-        <button class="toggle-btn" id="toggleExamBtn" title="考试倒计时">
+        <button class="toggle-btn" id="toggleExamBtn" title="自定义倒计时">
             <svg class="btn-icon" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
         </button>
         <div class="panel" id="examPanel">
+            <div class="time-input-row">
+                <input type="text" class="exam-title-input" id="examTitle" placeholder="倒计时标题" value="考试" maxlength="12">
+            </div>
             <div class="time-input-row">
                 <input class="small-input" type="number" id="examY" placeholder="年"><span class="input-unit">年</span>
                 <input class="small-input" type="number" id="examM" placeholder="月"><span class="input-unit">月</span>
                 <input class="small-input" type="number" id="examD" placeholder="日"><span class="input-unit">日</span>
             </div>
             <div class="ctrl-buttons">
-                <button id="examSetBtn" title="确定">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
-                </button>
+                <button id="examSetBtn" title="确定"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></button>
             </div>
             <div class="setting-row" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.15);padding-top:12px;margin-bottom:0;">
                 <span>显示到主界面</span>
-                <label class="toggle">
-                    <input type="checkbox" id="examShowSwitch">
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </label>
+                <label class="toggle"><input type="checkbox" id="examShowSwitch"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
             </div>
         </div>
     </div>
@@ -1013,6 +1073,12 @@
     </div>
     <div class="pomodoro-top-inline" id="pomodoroTopInline">番茄：25分00秒【工作】</div>
     <div class="time-display" id="timeStr"></div>
+    <div class="countdown-progress-wrap" id="countdownProgressWrap">
+        <div class="countdown-progress-bar">
+            <div class="countdown-progress-fill" id="countdownProgressFill"></div>
+        </div>
+        <div class="countdown-progress-text" id="countdownProgressText">00天 00时00分00秒</div>
+    </div>
     <div class="main-saying" id="mainSaying"></div>
     <div class="holiday-countdown-text" id="holidayCountStr"></div>
 </div>
@@ -1033,6 +1099,63 @@
         <button class="stats-modal-close" id="statsModalClose">×</button>
     </div>
     <div class="stats-modal-body" id="statsModalBody"></div>
+</div>
+
+<div class="info-modal" id="devNoteModal">
+    <div class="info-modal-inner">
+        <div class="info-modal-header">唠几句</div>
+        <div class="info-modal-body">
+            <p>嗨，欢迎使用<strong>维刻时钟</strong> 👋</p>
+            <p>维刻，维持你自己的刻度，Preserve Moment。</p>
+            <p>不止好用，而且好看</p>
+            <p>因为想要有个提高学习效率的小工具，我就做了这个时钟。</p>
+            <p>问题反馈/功能需求：3635119706@qq.com</p>
+            <p>愿你能在这里，找到自己的节奏 🌱</p>
+            <p class="signature">—— Visscon</p>
+        </div>
+        <div class="info-modal-footer">
+            <button class="info-modal-btn" id="devNoteLaterBtn">稍后再说</button>
+            <button class="info-modal-btn primary" id="devNoteDontShowBtn">不再显示</button>
+        </div>
+    </div>
+</div>
+
+<div class="info-modal" id="tutorialModal">
+    <div class="info-modal-inner">
+        <div class="info-modal-header">使用教程</div>
+        <div class="info-modal-body">
+            <p><strong>主界面</strong><br>中央是实时时钟。右侧竖排按钮依次为：倒计时、计时器、待办、番茄钟、自定义倒计时。左上角有设置和专注模式。</p>
+            <p><strong>倒计时</strong><br>在右侧面板输入天数/小时/分钟/秒，点击开始。进度条会显示在主屏幕时钟下方，方便直观感受时间流逝。结束时会有声音和通知提醒。想中途放弃时，点红色「清除」按钮即可停止并重置倒计时。</p>
+            <p><strong>计时器</strong><br>秒表计时，可以标记、重置。底部「清除」按钮一键停止计时、归零并清空所有标记记录（带确认，防误触）。</p>
+            <p><strong>待办与学习</strong><br>打开待办面板添加任务，主屏幕会显示学习控制条。点「开始学习」记录专注时间，「摸鱼休息」暂停计时，「学习结束」结算本次。待办面板的图表按钮可查看每个任务的专注统计和专注率。</p>
+            <p><strong>自定义倒计时</strong><br>可以给倒计时起个名字（默认"考试"），比如"生日""假期"等。设置完成后打开"显示到主界面"开关，主屏幕就会显示你的专属倒计时。</p>
+            <p><strong>个性化</strong><br>设置里可以调整时钟大小、时钟粗细（拖动滑块）、名言模式（静态句子 / 每日一言 / 每日诗词）、是否显示各模块。专注模式会隐藏右侧面板，保留学习条。</p>
+            <p>所有数据都保存在你的浏览器本地，不会上传到任何服务器。 🌿</p>
+        </div>
+        <div class="info-modal-footer">
+            <button class="info-modal-btn" id="tutorialLaterBtn">稍后再说</button>
+            <button class="info-modal-btn primary" id="tutorialDontShowBtn">不再显示</button>
+        </div>
+    </div>
+</div>
+
+<div class="info-modal" id="shortcutsModal">
+    <div class="info-modal-inner">
+        <div class="info-modal-header">键盘快捷键</div>
+        <div class="info-modal-body">
+            <p><code>空格</code> — 开始/暂停当前倒计时</p>
+            <p><code>Esc</code> — 关闭所有面板 / 弹窗</p>
+            <p><code>T</code> — 打开/关闭待办面板</p>
+            <p><code>C</code> — 打开/关闭倒计时面板</p>
+            <p><code>P</code> — 打开/关闭番茄钟面板</p>
+            <p><code>F</code> — 切换专注模式</p>
+            <p><code>S</code> — 打开/关闭设置面板</p>
+            <p><code>M</code> — 打开迷你模式（小窗口时钟）</p>
+        </div>
+        <div class="info-modal-footer">
+            <button class="info-modal-btn primary" id="shortcutsCloseBtn">明白了</button>
+        </div>
+    </div>
 </div>
 
 <div class="weather-footer" id="weatherFooter">获取定位与天气中…</div>
@@ -1060,7 +1183,8 @@ document.addEventListener('DOMContentLoaded', function(){
         use12Hour: $('use12Hour'),
         mobileModeCb: $('mobileMode'),
         clkS: $('clkS'), clkM: $('clkM'), clkL: $('clkL'),
-        w100: $('w100'), w300: $('w300'), w500: $('w500'),
+        clockWeight: $('clockWeight'),
+        clockWeightValue: $('clockWeightValue'),
         showCountdown: $('showCountdown'),
         showTimer: $('showTimer'),
         showTodo: $('showTodo'),
@@ -1075,6 +1199,7 @@ document.addEventListener('DOMContentLoaded', function(){
         sayingStatic: $('sayingStatic'),
         sayingDaily: $('sayingDaily'),
         sayingPoetry: $('sayingPoetry'),
+        enableSound: $('enableSound'),
         itemCountdown: $('itemCountdown'),
         itemTimer: $('itemTimer'),
         itemTodo: $('itemTodo'),
@@ -1093,6 +1218,7 @@ document.addEventListener('DOMContentLoaded', function(){
         inpDay: $('inpDay'), inpHour: $('inpHour'),
         inpMin: $('inpMin'), inpSec: $('inpSec'),
         startBtn: $('startBtn'), pauseBtn: $('pauseBtn'),
+        countdownClearBtn: $('countdownClearBtn'),
         customCountStr: $('customCountStr'),
         timerDisplay: $('timerDisplay'),
         timerStart: $('timerStart'),
@@ -1101,6 +1227,7 @@ document.addEventListener('DOMContentLoaded', function(){
         timerMark: $('timerMark'),
         timerMarkLog: $('timerMarkLog'),
         timerClearMarksBtn: $('timerClearMarksBtn'),
+        timerClearBtn: $('timerClearBtn'),
         todoPrevBtn: $('todoPrevBtn'),
         todoNextBtn: $('todoNextBtn'),
         todoNavTitle: $('todoNavTitle'),
@@ -1127,11 +1254,30 @@ document.addEventListener('DOMContentLoaded', function(){
         pomodoroStart: $('pomodoroStart'),
         pomodoroPause: $('pomodoroPause'),
         pomodoroReset: $('pomodoroReset'),
+        examTitle: $('examTitle'),
         examY: $('examY'), examM: $('examM'), examD: $('examD'),
         examSetBtn: $('examSetBtn'),
         examCountText: $('examCountText'),
         examCountWrap: $('examCountWrap'),
-        pomodoroTopInline: $('pomodoroTopInline')
+        pomodoroTopInline: $('pomodoroTopInline'),
+        countdownProgressWrap: $('countdownProgressWrap'),
+        countdownProgressFill: $('countdownProgressFill'),
+        countdownProgressText: $('countdownProgressText'),
+        devNoteModal: $('devNoteModal'),
+        devNoteLaterBtn: $('devNoteLaterBtn'),
+        devNoteDontShowBtn: $('devNoteDontShowBtn'),
+        tutorialModal: $('tutorialModal'),
+        tutorialLaterBtn: $('tutorialLaterBtn'),
+        tutorialDontShowBtn: $('tutorialDontShowBtn'),
+        shortcutsModal: $('shortcutsModal'),
+        shortcutsCloseBtn: $('shortcutsCloseBtn'),
+        openDevNoteBtn: $('openDevNoteBtn'),
+        openTutorialBtn: $('openTutorialBtn'),
+        openShortcutsBtn: $('openShortcutsBtn'),
+        exportDataBtn: $('exportDataBtn'),
+        importDataBtn: $('importDataBtn'),
+        importFileInput: $('importFileInput'),
+        openMiniBtn: $('openMiniBtn')
     };
 
     const MS = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
@@ -1142,7 +1288,16 @@ document.addEventListener('DOMContentLoaded', function(){
         SAYING_DATE: 'skyclock_saying_date',
         POETRY: 'skyclock_poetry',
         POETRY_DATE: 'skyclock_poetry_date',
-        SHOW_STUDY_BAR: 'skyclock_show_study_bar'
+        SHOW_STUDY_BAR: 'skyclock_show_study_bar',
+        DEV_NOTE_SEEN: 'skyclock_dev_note_seen',
+        TUTORIAL_SEEN: 'skyclock_tutorial_seen',
+        EXAM_TITLE: 'skyclock_exam_title',
+        EXAM_DATE: 'skyclock_exam_date',
+        EXAM_SHOW: 'skyclock_exam_show',
+        SETTINGS: 'skyclock_settings',
+        COUNTDOWN_STATE: 'skyclock_countdown_state',
+        POMO_STATE: 'skyclock_pomo_state',
+        MOBILE_MANUAL: 'skyclock_mobile_manual'
     };
     const STATIC_SENTENCE = '永远相信美好的事情即将发生';
     const WEATHER_MAP = {
@@ -1153,9 +1308,13 @@ document.addEventListener('DOMContentLoaded', function(){
     };
 
     let sunriseTs = null, sunsetTs = null;
-    let weatherType = 'clear', weatherLock = false;
+    let weatherType = 'clear';
     let countTotal = 5 * MS.m, countRemain = countTotal;
     let countRunning = false, countTimer = null;
+    let countActive = false;
+    let countdownStartAt = 0;
+    let countdownTotalMs = 0;
+    let countdownFired = false;
     let timerMs = 0, timerRunning = false, timerInterval = null;
     let todoList = [];
     let currentTaskIdx = 0;
@@ -1167,17 +1326,81 @@ document.addEventListener('DOMContentLoaded', function(){
     let pomoRemain = pomoWork;
     let pomoRunning = false, pomoTimer = null;
     let pomoIsWork = true;
+    let pomoEndAt = 0;
+    let pomoFired = false;
     let pomoCallback = null;
     let examTarget = null;
+    let examTitleText = '考试';
     let focusMode = false;
+    let modalOpen = false;
+    let audioCtx = null;
+    let lastClockStr = '';
+    let lastSkyKey = '';
+    let lastSkyUpdate = 0;
+    let lastExamText = '';
+    let holidayCache = { dateKey: '', text: '' };
+
+    /* ===== 星空 / 雨滴图层状态 ===== */
+    let lastNightState = null;
+    let starsLayer = null;
+    let rainLayer = null;
 
     const pad2 = n => String(Math.max(0, Math.floor(n))).padStart(2, '0');
     const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-    function safeRun(fn, label){
-        try { fn(); } catch(e) {
-            console.error('[safeRun:' + (label||'?') + ']', e);
-        }
+    // ===== 设置持久化 =====
+    function loadSettings(){
+        try {
+            const raw = JSON.parse(localStorage.getItem(STORAGE.SETTINGS)) || {};
+            if (raw.use12Hour !== undefined) el.use12Hour.checked = raw.use12Hour;
+            if (raw.mobileMode !== undefined) el.mobileModeCb.checked = raw.mobileMode;
+            if (raw.clockSize) {
+                const r = document.querySelector('input[name="clockSize"][value="' + raw.clockSize + '"]');
+                if (r) r.checked = true;
+            }
+            if (raw.clockWeight !== undefined) {
+                el.clockWeight.value = raw.clockWeight;
+                el.clockWeightValue.textContent = raw.clockWeight;
+            }
+            if (raw.showCountdown !== undefined) el.showCountdown.checked = raw.showCountdown;
+            if (raw.showTimer !== undefined) el.showTimer.checked = raw.showTimer;
+            if (raw.showTodo !== undefined) el.showTodo.checked = raw.showTodo;
+            if (raw.showStudyBar !== undefined) el.showStudyBar.checked = raw.showStudyBar;
+            if (raw.showPomodoro !== undefined) el.showPomodoro.checked = raw.showPomodoro;
+            if (raw.showExam !== undefined) el.showExam.checked = raw.showExam;
+            if (raw.showWeather !== undefined) el.showWeather.checked = raw.showWeather;
+            if (raw.showHoliday !== undefined) el.showHoliday.checked = raw.showHoliday;
+            if (raw.showPomodoroTop !== undefined) el.showPomodoroTop.checked = raw.showPomodoroTop;
+            if (raw.sayingMode) {
+                const r = document.querySelector('input[name="sayingMode"][value="' + raw.sayingMode + '"]');
+                if (r) r.checked = true;
+            }
+            if (raw.enableSound !== undefined) el.enableSound.checked = raw.enableSound;
+        } catch(e) {}
+    }
+    function saveSettings(){
+        try {
+            const clockSizeEl = document.querySelector('input[name="clockSize"]:checked');
+            const sayingModeEl = document.querySelector('input[name="sayingMode"]:checked');
+            const data = {
+                use12Hour: el.use12Hour.checked,
+                mobileMode: el.mobileModeCb.checked,
+                clockSize: clockSizeEl ? clockSizeEl.value : 'medium',
+                clockWeight: el.clockWeight.value,
+                showCountdown: el.showCountdown.checked,
+                showTimer: el.showTimer.checked,
+                showTodo: el.showTodo.checked,
+                showStudyBar: el.showStudyBar.checked,
+                showPomodoro: el.showPomodoro.checked,
+                showExam: el.showExam.checked,
+                showWeather: el.showWeather.checked,
+                showHoliday: el.showHoliday.checked,
+                showPomodoroTop: el.showPomodoroTop.checked,
+                sayingMode: sayingModeEl ? sayingModeEl.value : 'static',
+                enableSound: el.enableSound.checked
+            };
+            localStorage.setItem(STORAGE.SETTINGS, JSON.stringify(data));
+        } catch(e) {}
     }
 
     function toast(text){
@@ -1260,6 +1483,79 @@ document.addEventListener('DOMContentLoaded', function(){
         return Math.floor(ms / MS.s) + ' 秒';
     }
 
+    // ===== 声音提示 =====
+    function initAudio(){
+        if (audioCtx) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch(e) {}
+    }
+    function playNotificationSound(){
+        if (!el.enableSound.checked) return;
+        initAudio();
+        if (!audioCtx) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            [880, 1100, 1320].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                const start = now + i * 0.18;
+                gain.gain.setValueAtTime(0, start);
+                gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+                osc.start(start);
+                osc.stop(start + 0.4);
+            });
+        } catch(e) {}
+    }
+    function fireReminder(title, body){
+        playNotificationSound();
+        toast(title + ' · ' + body);
+    }
+
+    // ===== 天空颜色 =====
+    const SKY_KEYFRAMES = [
+        { h: 0,   top: [5,13,26],     mid: [16,42,67],   bot: [25,55,93]   },
+        { h: 4.5, top: [30,30,70],    mid: [45,45,90],   bot: [80,60,100]  },
+        { h: 6,   top: [255,154,139], mid: [255,216,155],bot: [255,107,107]},
+        { h: 8,   top: [79,172,254],  mid: [0,242,254],  bot: [168,230,255]},
+        { h: 12,  top: [79,172,254],  mid: [0,242,254],  bot: [135,206,235]},
+        { h: 17,  top: [26,37,51],    mid: [230,92,60],  bot: [255,158,100]},
+        { h: 19,  top: [30,20,60],    mid: [80,30,80],   bot: [220,90,80]  },
+        { h: 21,  top: [5,13,26],     mid: [16,42,67],   bot: [25,55,93]   },
+        { h: 24,  top: [5,13,26],     mid: [16,42,67],   bot: [25,55,93]   }
+    ];
+    function lerpColor(c1, c2, t){
+        return [
+            Math.round(c1[0] + (c2[0] - c1[0]) * t),
+            Math.round(c1[1] + (c2[1] - c1[1]) * t),
+            Math.round(c1[2] + (c2[2] - c1[2]) * t)
+        ];
+    }
+    function getSkyColors(date){
+        const h = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+        let k1 = SKY_KEYFRAMES[0], k2 = SKY_KEYFRAMES[1];
+        for (let i = 0; i < SKY_KEYFRAMES.length - 1; i++) {
+            if (h >= SKY_KEYFRAMES[i].h && h < SKY_KEYFRAMES[i + 1].h) {
+                k1 = SKY_KEYFRAMES[i];
+                k2 = SKY_KEYFRAMES[i + 1];
+                break;
+            }
+        }
+        const span = k2.h - k1.h;
+        const t = span > 0 ? (h - k1.h) / span : 0;
+        return {
+            top: lerpColor(k1.top, k2.top, t),
+            mid: lerpColor(k1.mid, k2.mid, t),
+            bot: lerpColor(k1.bot, k2.bot, t)
+        };
+    }
+
     // ===== 农历节假日 =====
     function getLunarMonthDay(date){
         try {
@@ -1330,18 +1626,75 @@ document.addEventListener('DOMContentLoaded', function(){
         candidates.sort((a, b) => a.date - b.date);
         return candidates[0];
     }
-    let holidayCache = { dateKey: '', text: '' };
 
-    // ===== tick 各部分独立 =====
+    /* ===== 星空 / 雨滴：图层方案 ===== */
+    function createStars(){
+        if (starsLayer) return;
+        starsLayer = document.createElement('div');
+        starsLayer.className = 'stars-layer';
+        for (let i = 0; i < 40; i++) {
+            const s = document.createElement('div');
+            s.className = 'star';
+            s.style.left = Math.random() * 100 + '%';
+            s.style.top = Math.random() * 48 + '%';
+            s.style.animationDelay = Math.random() * 3 + 's';
+            starsLayer.appendChild(s);
+        }
+        el.skyWrap.appendChild(starsLayer);
+    }
+
+    function createRain(){
+        if (rainLayer) return;
+        rainLayer = document.createElement('div');
+        rainLayer.className = 'rain-layer';
+        for (let i = 0; i < 30; i++) {
+            const r = document.createElement('div');
+            r.className = 'rain';
+            r.style.left = Math.random() * 100 + '%';
+            r.style.animationDelay = Math.random() * 0.8 + 's';
+            rainLayer.appendChild(r);
+        }
+        el.skyWrap.appendChild(rainLayer);
+    }
+
+    function syncSkyElements(){
+        const now = Date.now();
+        const rise = sunriseTs || new Date().setHours(7, 0, 0, 0);
+        const set = sunsetTs || new Date().setHours(19, 0, 0, 0);
+        const isNight = now < rise || now >= set;
+
+        // 星星：晴朗夜晚显示
+        if (weatherType === 'clear' && isNight) {
+            createStars();
+            starsLayer.classList.add('show');
+        } else if (starsLayer) {
+            starsLayer.classList.remove('show');
+        }
+
+        // 雨滴：下雨时显示
+        if (weatherType === 'rainy') {
+            createRain();
+            rainLayer.classList.add('show');
+        } else if (rainLayer) {
+            rainLayer.classList.remove('show');
+        }
+    }
+
+    // ===== tick =====
     function tickClock(){
         if (!el.timeStr || !el.use12Hour) return;
-        el.timeStr.innerHTML = fmtClock(new Date(), el.use12Hour.checked);
+        const str = fmtClock(new Date(), el.use12Hour.checked);
+        if (str === lastClockStr) return;
+        lastClockStr = str;
+        el.timeStr.innerHTML = str;
     }
     function tickHoliday(){
         if (!el.showHoliday || !el.showHoliday.checked || !el.holidayCountStr) return;
         const key = new Date().toDateString();
         if (holidayCache.dateKey === key && holidayCache.text) {
-            el.holidayCountStr.textContent = holidayCache.text;
+            if (el.holidayCountStr.textContent !== holidayCache.text) {
+                el.holidayCountStr.textContent = holidayCache.text;
+            }
             return;
         }
         const next = getNextHoliday();
@@ -1355,72 +1708,114 @@ document.addEventListener('DOMContentLoaded', function(){
         holidayCache = { dateKey: key, text };
         el.holidayCountStr.textContent = text;
     }
-    function tickSky(){
+    function tickSky(force){
         if (!el.skyBg) return;
-        const now = new Date();
-        const h = now.getHours();
-        let bg;
-        if (h >= 5 && h < 7) bg = 'linear-gradient(180deg, #ff9a8b 0%, #ffd89b 45%, #ff6b6b 100%)';
-        else if (h >= 7 && h < 17) bg = 'linear-gradient(180deg, #4facfe 0%, #00f2fe 100%)';
-        else if (h >= 17 && h < 20) bg = 'linear-gradient(180deg, #1a2533 0%, #e65c3c 35%, #ff9e64 70%, #ffdd99 100%)';
-        else bg = 'linear-gradient(180deg, #050d1a 0%, #102a43 45%, #19375d 100%)';
-        el.skyBg.style.background = bg;
-
         const nowMs = Date.now();
+        if (!force && nowMs - lastSkyUpdate < 20000) return;
+        lastSkyUpdate = nowMs;
+
+        const now = new Date();
+        const colors = getSkyColors(now);
+        const skyKey = colors.top.join(',') + '|' + colors.mid.join(',') + '|' + colors.bot.join(',');
+        if (skyKey !== lastSkyKey) {
+            lastSkyKey = skyKey;
+            el.skyBg.style.background = 'linear-gradient(180deg, rgb(' + colors.top.join(',') + ') 0%, rgb(' + colors.mid.join(',') + ') 50%, rgb(' + colors.bot.join(',') + ') 100%)';
+        }
+
         const rise = sunriseTs || new Date().setHours(7, 0, 0, 0);
         const set = sunsetTs || new Date().setHours(19, 0, 0, 0);
         const mobile = document.body.classList.contains('mobile-mode');
-        const sox = mobile ? 160 : 280, soy = mobile ? -130 : -220;
-        const mox = mobile ? 145 : 260, moy = mobile ? -115 : -200;
+        const vw = Math.max(window.innerWidth, 320);
+        const vh = Math.max(window.innerHeight, 480);
+        const maxX = mobile ? vw * 0.36 : Math.min(vw * 0.42, 520);
+        const maxY = mobile ? vh * 0.24 : Math.min(vh * 0.32, 340);
+
         let sx = 0, sy = 0, sop = 0, mx = 0, my = 0, mop = 0;
-        if (nowMs >= rise && nowMs < set) {
+        const isDay = nowMs >= rise && nowMs < set;
+        if (isDay) {
             const p = (nowMs - rise) / (set - rise);
             const rad = Math.PI * p;
-            sx = Math.cos(Math.PI + rad) * sox;
-            sy = Math.sin(rad) * soy;
-            sop = 1;
+            sx = -Math.cos(rad) * maxX;
+            sy = -Math.sin(rad) * maxY;
+            sop = Math.min(1, Math.sin(rad) * 2.2);
+            if (p < 0.08) sop *= p / 0.08;
+            if (p > 0.92) sop *= (1 - p) / 0.08;
         } else {
             const night = MS.d - (set - rise);
             const p = nowMs >= set ? (nowMs - set) / night : ((nowMs + MS.d) - set) / night;
             const rad = Math.PI * p;
-            mx = Math.cos(Math.PI + rad) * mox;
-            my = Math.sin(rad) * moy;
-            mop = 1;
+            mx = -Math.cos(rad) * maxX;
+            my = -Math.sin(rad) * maxY;
+            mop = Math.min(1, Math.sin(rad) * 2.2);
+            if (p < 0.08) mop *= p / 0.08;
+            if (p > 0.92) mop *= (1 - p) / 0.08;
         }
         if (el.sun) {
-            el.sun.style.transform = 'translate(' + sx + 'px, ' + sy + 'px)';
-            el.sun.style.opacity = sop;
+            el.sun.style.transform = 'translate(' + sx.toFixed(1) + 'px, ' + sy.toFixed(1) + 'px)';
+            el.sun.style.opacity = sop.toFixed(2);
         }
         if (el.moon) {
-            el.moon.style.transform = 'translate(' + mx + 'px, ' + my + 'px)';
-            el.moon.style.opacity = mop;
+            el.moon.style.transform = 'translate(' + mx.toFixed(1) + 'px, ' + my.toFixed(1) + 'px)';
+            el.moon.style.opacity = mop.toFixed(2);
         }
-        document.body.classList.toggle('day-theme', nowMs >= rise && nowMs < set);
+        document.body.classList.toggle('day-theme', isDay);
+
+        /* ===== 昼夜切换时刷新星空可见性 ===== */
+        const isNight = !isDay;
+        if (isNight !== lastNightState) {
+            lastNightState = isNight;
+            syncSkyElements();
+        }
     }
     function tickExam(){
         if (!el.examShowSwitch || !el.examCountWrap) return;
         if (!el.examShowSwitch.checked || !examTarget) {
-            el.examCountWrap.style.display = 'none';
+            if (el.examCountWrap.style.display !== 'none') el.examCountWrap.style.display = 'none';
             return;
         }
-        el.examCountWrap.style.display = 'block';
+        if (el.examCountWrap.style.display !== 'block') el.examCountWrap.style.display = 'block';
         const diff = examTarget - Date.now();
+        const title = examTitleText || '考试';
+        let text;
         if (diff <= 0) {
-            el.examCountText.textContent = '考试已结束';
-            return;
+            text = title + '已结束';
+        } else {
+            const day = Math.floor(diff / MS.d);
+            const h = Math.floor((diff % MS.d) / MS.h);
+            const m = Math.floor((diff % MS.h) / MS.m);
+            text = '距离' + title + '：' + day + '天 ' + h + '时' + m + '分';
         }
-        const day = Math.floor(diff / MS.d);
-        const h = Math.floor((diff % MS.d) / MS.h);
-        const m = Math.floor((diff % MS.h) / MS.m);
-        el.examCountText.textContent = '距离考试：' + day + '天 ' + h + '时' + m + '分';
+        if (text !== lastExamText) {
+            lastExamText = text;
+            el.examCountText.textContent = text;
+        }
     }
 
-    function tick(){
-        safeRun(tickClock, 'clock');
-        safeRun(tickHoliday, 'holiday');
-        safeRun(tickExam, 'exam');
-        safeRun(tickSky, 'sky');
-        safeRun(updateStudyBar, 'studyBar');
+    function updateCountdownProgress(){
+        if (!countActive) return;
+        const elapsed = countdownTotalMs - countRemain;
+        const pct = countdownTotalMs > 0 ? Math.min(100, Math.max(0, elapsed / countdownTotalMs * 100)) : 0;
+        el.countdownProgressFill.style.width = pct + '%';
+        el.countdownProgressText.textContent = fmtCount(Math.max(0, countRemain));
+    }
+
+    function scheduleTick(){
+        setInterval(() => { if (!modalOpen) tickClock(); }, 1000);
+        setInterval(() => { if (!modalOpen) tickSky(false); }, 20000);
+        setInterval(() => { if (!modalOpen) tickHoliday(); }, 60000);
+        setInterval(() => { if (!modalOpen) tickExam(); }, 20000);
+        setInterval(() => {
+            if (modalOpen) return;
+            if (studyState !== 'idle') {
+                el.studyTimeDisplay.textContent = fmtDuration(Date.now() - sessionStartAt);
+            }
+        }, 1000);
+    }
+    function firstPaint(){
+        tickClock();
+        tickHoliday();
+        tickSky(true);
+        tickExam();
     }
 
     // ===== 每日一言 =====
@@ -1432,7 +1827,7 @@ document.addEventListener('DOMContentLoaded', function(){
             if (json.item && typeof json.item.content === 'string' && json.item.content.trim()) return json.item.content.trim();
             if (typeof json.content === 'string' && json.content.trim()) return json.content.trim();
             if (typeof json.text === 'string' && json.text.trim()) return json.text.trim();
-        } catch(e) { console.warn('[一言·UAPI] 失败:', e.message); }
+        } catch(e) {}
         return null;
     }
     async function fetchSayingFromHitokoto(){
@@ -1441,7 +1836,7 @@ document.addEventListener('DOMContentLoaded', function(){
             if (!res.ok) return null;
             const json = await res.json();
             if (json && typeof json.hitokoto === 'string' && json.hitokoto.trim()) return json.hitokoto.trim();
-        } catch(e) { console.warn('[一言·Hitokoto] 失败:', e.message); }
+        } catch(e) {}
         return null;
     }
     async function fetchSayingFromYviii(){
@@ -1450,7 +1845,7 @@ document.addEventListener('DOMContentLoaded', function(){
             if (!res.ok) return null;
             const text = await res.text();
             if (text && text.trim()) return text.trim();
-        } catch(e) { console.warn('[一言·YVIII] 失败:', e.message); }
+        } catch(e) {}
         return null;
     }
     async function fetchDailySaying(){
@@ -1463,7 +1858,6 @@ document.addEventListener('DOMContentLoaded', function(){
         return null;
     }
 
-    // ===== 每日诗词 =====
     function loadJinrishiciSDK(){
         return new Promise((resolve) => {
             if (window.jinrishici) { resolve(); return; }
@@ -1471,7 +1865,7 @@ document.addEventListener('DOMContentLoaded', function(){
             script.src = 'https://sdk.jinrishici.com/v2/browser/jinrishici.js';
             script.charset = 'utf-8';
             script.onload = () => resolve();
-            script.onerror = () => { console.warn('[每日诗词] SDK 加载失败'); resolve(); };
+            script.onerror = () => { resolve(); };
             document.head.appendChild(script);
         });
     }
@@ -1574,12 +1968,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 return;
             }
-        } catch(e) {
-            console.error('[loadSaying]', e);
-        }
+        } catch(e) {}
     }
 
-    // ===== 待办逻辑 =====
+    // ===== 待办 =====
     function getCurrentTask(){ return todoList[currentTaskIdx] || null; }
 
     function loadTodo(){
@@ -1623,27 +2015,21 @@ document.addEventListener('DOMContentLoaded', function(){
         renderTodo();
     }
 
-    /** 学习条显示逻辑：用户开关 && 有任务（不再依赖待办面板开关状态） */
     function updateStudyBar(){
         const shouldShow = el.showStudyBar.checked && todoList.length > 0;
         el.studyBar.classList.toggle('show', shouldShow);
         if (!shouldShow) return;
-
         const task = getCurrentTask();
         if (!task) return;
-
         el.studyTaskName.textContent = task.text || '未命名任务';
         let elapsed = 0;
         if (studyState !== 'idle') elapsed = Date.now() - sessionStartAt;
         el.studyTimeDisplay.textContent = fmtDuration(elapsed);
-
         el.studyStartBtn.disabled = (studyState === 'focusing');
         el.studyBreakBtn.disabled = (studyState !== 'focusing');
         el.studyEndBtn.disabled = (studyState === 'idle');
         el.studyStartBtn.classList.toggle('active', studyState === 'focusing');
         el.studyBreakBtn.classList.toggle('active', studyState === 'break');
-
-        // 同步按钮文本
         if (el.todoStudyToggleText) {
             el.todoStudyToggleText.textContent = el.showStudyBar.checked ? '隐藏学习条' : '显示学习条';
         }
@@ -1721,108 +2107,259 @@ document.addEventListener('DOMContentLoaded', function(){
         updateStudyBar();
     }
 
-    // 待办事件
-    el.todoPrevBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!todoList.length) return;
-        currentTaskIdx = (currentTaskIdx - 1 + todoList.length) % todoList.length;
-        updateTodoNav();
-        updateStudyBar();
-    });
-    el.todoNextBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!todoList.length) return;
-        currentTaskIdx = (currentTaskIdx + 1) % todoList.length;
-        updateTodoNav();
-        updateStudyBar();
-    });
-    el.todoStatsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        showStats();
-    });
-    el.statsModalClose.addEventListener('click', (e) => {
-        e.stopPropagation();
-        hideStats();
-    });
-    el.statsModal.addEventListener('click', (e) => {
-        // 点击弹窗背景关闭
-        if (e.target === el.statsModal) hideStats();
-    });
-    el.todoPlannedMin.addEventListener('change', () => {
-        const task = getCurrentTask();
-        if (task) {
-            task.plannedMin = Math.max(1, +el.todoPlannedMin.value || 25);
-            el.todoPlannedMin.value = task.plannedMin;
-            saveTodo();
-        }
-    });
-    el.todoAddBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        addTodo();
-    });
-    el.todoInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
-    el.todoInput.addEventListener('click', e => e.stopPropagation());
-
-    el.todoListBox.addEventListener('click', e => {
-        e.stopPropagation();
-        if (e.target.classList.contains('todo-del')) {
-            const idx = +e.target.dataset.del;
-            if (isNaN(idx)) return;
-            todoList.splice(idx, 1);
-            if (currentTaskIdx >= todoList.length) currentTaskIdx = Math.max(0, todoList.length - 1);
-            else if (currentTaskIdx > idx) currentTaskIdx--;
-            saveTodo();
-            updateTodoNav();
-            updateStudyBar();
-            return;
-        }
-        if (e.target.tagName === 'INPUT' && e.target.dataset.check !== undefined) {
-            const idx = +e.target.dataset.check;
-            if (isNaN(idx)) return;
-            todoList[idx].done = !todoList[idx].done;
-            saveTodo();
-            updateTodoNav();
-            return;
-        }
-        const item = e.target.closest('.todo-item');
-        if (item) {
-            const idx = +item.dataset.item;
-            if (!isNaN(idx) && idx !== currentTaskIdx) {
-                currentTaskIdx = idx;
-                updateTodoNav();
-                updateStudyBar();
+    // ===== 状态持久化 =====
+    function saveCountdownState(){
+        try {
+            localStorage.setItem(STORAGE.COUNTDOWN_STATE, JSON.stringify({
+                endAt: countdownStartAt + countdownTotalMs,
+                totalMs: countdownTotalMs,
+                running: countRunning,
+                active: countActive
+            }));
+        } catch(e) {}
+    }
+    function clearCountdownState(){
+        try { localStorage.removeItem(STORAGE.COUNTDOWN_STATE); } catch(e) {}
+    }
+    function restoreCountdownState(){
+        try {
+            const raw = JSON.parse(localStorage.getItem(STORAGE.COUNTDOWN_STATE));
+            if (!raw || !raw.active) return;
+            const remain = raw.endAt - Date.now();
+            if (remain <= 0) { clearCountdownState(); return; }
+            countTotal = raw.totalMs;
+            countdownTotalMs = raw.totalMs;
+            countdownStartAt = raw.endAt - raw.totalMs;
+            countRemain = remain;
+            countActive = true;
+            countRunning = raw.running;
+            el.countdownProgressWrap.classList.add('show');
+            updateCountdownProgress();
+            if (countRunning) {
+                clearInterval(countTimer);
+                countTimer = setInterval(() => {
+                    const elapsed = Date.now() - countdownStartAt;
+                    countRemain = Math.max(0, countdownTotalMs - elapsed);
+                    el.customCountStr.textContent = fmtCount(countRemain);
+                    updateCountdownProgress();
+                    if (countRemain <= 0 && !countdownFired) {
+                        countdownFired = true;
+                        clearInterval(countTimer);
+                        countRunning = false;
+                        countActive = false;
+                        el.countdownProgressWrap.classList.remove('show');
+                        clearCountdownState();
+                        fireReminder('倒计时结束', '你设置的倒计时已经结束');
+                    }
+                }, 250);
             }
-        }
+        } catch(e) {}
+    }
+    function savePomoState(){
+        try {
+            localStorage.setItem(STORAGE.POMO_STATE, JSON.stringify({
+                endAt: pomoEndAt,
+                isWork: pomoIsWork,
+                work: pomoWork,
+                rest: pomoRest,
+                running: pomoRunning,
+                remain: pomoRemain
+            }));
+        } catch(e) {}
+    }
+    function clearPomoState(){
+        try { localStorage.removeItem(STORAGE.POMO_STATE); } catch(e) {}
+    }
+    function restorePomoState(){
+        try {
+            const raw = JSON.parse(localStorage.getItem(STORAGE.POMO_STATE));
+            if (!raw || !raw.running) return;
+            const remain = raw.endAt - Date.now();
+            if (remain <= 0) { clearPomoState(); return; }
+            pomoWork = raw.work;
+            pomoRest = raw.rest;
+            pomoIsWork = raw.isWork;
+            pomoEndAt = raw.endAt;
+            pomoRemain = remain;
+            pomoRunning = true;
+            el.pomodoroModeText.textContent = pomoIsWork ? '工作' : '休息';
+            updatePomoDisplay();
+            startPomoTick();
+        } catch(e) {}
+    }
+    function startPomoTick(){
+        clearInterval(pomoTimer);
+        pomoTimer = setInterval(() => {
+            pomoRemain = Math.max(0, pomoEndAt - Date.now());
+            updatePomoDisplay();
+            if (pomoRemain <= 0 && !pomoFired) {
+                pomoFired = true;
+                clearInterval(pomoTimer);
+                pomoRunning = false;
+                clearPomoState();
+                const tip = pomoIsWork ? '工作结束，休息一下' : '休息结束，继续加油';
+                fireReminder('番茄钟', tip);
+                confirmBox(pomoIsWork ? '准备好开始休息了吗？' : '准备好开始工作了吗？', () => startPomoLoop(!pomoIsWork));
+            }
+        }, 250);
+    }
+
+    // ===== 弹窗 =====
+    function setModalOpen(on){
+        modalOpen = on;
+        document.body.classList.toggle('modal-open', on);
+    }
+    function anyOtherModalOpen(){
+        return el.devNoteModal.classList.contains('show') ||
+               el.tutorialModal.classList.contains('show') ||
+               el.shortcutsModal.classList.contains('show');
+    }
+    function openDevNote(){ el.devNoteModal.classList.add('show'); setModalOpen(true); }
+    function closeDevNote(){ el.devNoteModal.classList.remove('show'); if (!anyOtherModalOpen()) setModalOpen(false); }
+    function openTutorial(){ el.tutorialModal.classList.add('show'); setModalOpen(true); }
+    function closeTutorial(){ el.tutorialModal.classList.remove('show'); if (!anyOtherModalOpen()) setModalOpen(false); }
+    function openShortcuts(){ el.shortcutsModal.classList.add('show'); setModalOpen(true); }
+    function closeShortcuts(){ el.shortcutsModal.classList.remove('show'); if (!anyOtherModalOpen()) setModalOpen(false); }
+
+    el.devNoteLaterBtn.addEventListener('click', closeDevNote);
+    el.devNoteDontShowBtn.addEventListener('click', () => {
+        try { localStorage.setItem(STORAGE.DEV_NOTE_SEEN, '1'); } catch(e) {}
+        closeDevNote();
+    });
+    el.tutorialLaterBtn.addEventListener('click', closeTutorial);
+    el.tutorialDontShowBtn.addEventListener('click', () => {
+        try { localStorage.setItem(STORAGE.TUTORIAL_SEEN, '1'); } catch(e) {}
+        closeTutorial();
+    });
+    el.shortcutsCloseBtn.addEventListener('click', closeShortcuts);
+    el.devNoteModal.addEventListener('click', (e) => { if (e.target === el.devNoteModal) closeDevNote(); });
+    el.tutorialModal.addEventListener('click', (e) => { if (e.target === el.tutorialModal) closeTutorial(); });
+    el.shortcutsModal.addEventListener('click', (e) => { if (e.target === el.shortcutsModal) closeShortcuts(); });
+    el.openDevNoteBtn.addEventListener('click', (e) => { e.stopPropagation(); openDevNote(); });
+    el.openTutorialBtn.addEventListener('click', (e) => { e.stopPropagation(); openTutorial(); });
+    el.openShortcutsBtn.addEventListener('click', (e) => { e.stopPropagation(); openShortcuts(); });
+
+    // 声音
+    el.enableSound.addEventListener('change', () => {
+        saveSettings();
+        if (el.enableSound.checked) { initAudio(); toast('声音已开启'); }
     });
 
-    // 学习条事件
-    el.studyStartBtn.addEventListener('click', (e) => { e.stopPropagation(); startStudy(); });
-    el.studyBreakBtn.addEventListener('click', (e) => { e.stopPropagation(); breakStudy(); });
-    el.studyEndBtn.addEventListener('click', (e) => { e.stopPropagation(); endStudy(); });
-
-    // 学习条开关（设置里的开关）
-    el.showStudyBar.addEventListener('change', () => {
-        try { localStorage.setItem(STORAGE.SHOW_STUDY_BAR, el.showStudyBar.checked ? '1' : '0'); } catch(e) {}
-        updateStudyBar();
-    });
-
-    // 待办面板底部：切换学习条按钮
-    el.todoStudyToggle.addEventListener('click', (e) => {
+    // 数据导出/导入
+    el.exportDataBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        el.showStudyBar.checked = !el.showStudyBar.checked;
-        try { localStorage.setItem(STORAGE.SHOW_STUDY_BAR, el.showStudyBar.checked ? '1' : '0'); } catch(e) {}
-        updateStudyBar();
+        const data = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            settings: JSON.parse(localStorage.getItem(STORAGE.SETTINGS) || '{}'),
+            todo: JSON.parse(localStorage.getItem(STORAGE.TODO) || '[]'),
+            saying: localStorage.getItem(STORAGE.SAYING),
+            sayingDate: localStorage.getItem(STORAGE.SAYING_DATE),
+            poetry: localStorage.getItem(STORAGE.POETRY),
+            poetryDate: localStorage.getItem(STORAGE.POETRY_DATE),
+            examTitle: localStorage.getItem(STORAGE.EXAM_TITLE),
+            examDate: localStorage.getItem(STORAGE.EXAM_DATE),
+            examShow: localStorage.getItem(STORAGE.EXAM_SHOW)
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'weikeclock-backup-' + todayStr() + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast('已导出备份');
+    });
+    el.importDataBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        el.importFileInput.click();
+    });
+    el.importFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data.settings) localStorage.setItem(STORAGE.SETTINGS, JSON.stringify(data.settings));
+                if (data.todo) localStorage.setItem(STORAGE.TODO, JSON.stringify(data.todo));
+                if (data.saying) localStorage.setItem(STORAGE.SAYING, data.saying);
+                if (data.sayingDate) localStorage.setItem(STORAGE.SAYING_DATE, data.sayingDate);
+                if (data.poetry) localStorage.setItem(STORAGE.POETRY, data.poetry);
+                if (data.poetryDate) localStorage.setItem(STORAGE.POETRY_DATE, data.poetryDate);
+                if (data.examTitle) localStorage.setItem(STORAGE.EXAM_TITLE, data.examTitle);
+                if (data.examDate) localStorage.setItem(STORAGE.EXAM_DATE, data.examDate);
+                if (data.examShow) localStorage.setItem(STORAGE.EXAM_SHOW, data.examShow);
+                toast('导入成功，即将刷新');
+                setTimeout(() => location.reload(), 800);
+            } catch(err) {
+                toast('文件格式错误');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
     });
 
-    // ===== 其他交互 =====
-    el.settingBtn.addEventListener('click', (e) => {
+    // 迷你模式
+    el.openMiniBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        el.settingPanel.classList.toggle('show');
+        const w = window.open('', 'weikeclock_mini', 'width=380,height=160,menubar=no,toolbar=no,location=no,status=no');
+        if (!w) { toast('浏览器阻止了弹窗，请允许弹窗'); return; }
+        w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>维刻时钟 · 迷你</title><style>'
+            + 'body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;'
+            + 'background:#0b1a2e;color:#fff;font-family:system-ui,sans-serif;overflow:hidden;}'
+            + '.time{font-size:56px;font-weight:300;letter-spacing:4px;text-shadow:0 0 20px rgba(0,0,0,0.6);}'
+            + '.label{font-size:12px;opacity:0.6;letter-spacing:3px;margin-top:6px;}'
+            + '.bar{width:80%;height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin-top:12px;overflow:hidden;}'
+            + '.fill{height:100%;width:0%;background:linear-gradient(90deg,#428bff,#87CEEB);transition:width 0.5s linear;}'
+            + '.remain{font-size:12px;opacity:0.75;margin-top:6px;letter-spacing:2px;}'
+            + '</style></head><body>'
+            + '<div class="time" id="mt">--:--:--</div>'
+            + '<div class="label">维刻时钟</div>'
+            + '<div class="bar"><div class="fill" id="mf"></div></div>'
+            + '<div class="remain" id="mr">未启用倒计时</div>'
+            + '<script>'
+            + 'function tick(){'
+            + '  var d=new Date(); var h=d.getHours(),m=d.getMinutes(),s=d.getSeconds();'
+            + '  var p=function(n){return String(n).padStart(2,"0");};'
+            + '  document.getElementById("mt").textContent=p(h)+":"+p(m)+":"+p(s);'
+            + '  try{'
+            + '    var cd=JSON.parse(localStorage.getItem("skyclock_countdown_state")||"null");'
+            + '    if(cd&&cd.active){'
+            + '      var remain=cd.endAt-Date.now();'
+            + '      if(remain>0){'
+            + '        var pct=(cd.totalMs-remain)/cd.totalMs*100;'
+            + '        document.getElementById("mf").style.width=pct+"%";'
+            + '        var dd=Math.floor(remain/86400000);'
+            + '        var hh=Math.floor((remain%86400000)/3600000);'
+            + '        var mm=Math.floor((remain%3600000)/60000);'
+            + '        var ss=Math.floor((remain%60000)/1000);'
+            + '        document.getElementById("mr").textContent=dd+"天 "+p(hh)+"时"+p(mm)+"分"+p(ss)+"秒";'
+            + '      }else{'
+            + '        document.getElementById("mf").style.width="100%";'
+            + '        document.getElementById("mr").textContent="倒计时结束";'
+            + '      }'
+            + '    }else{'
+            + '      document.getElementById("mf").style.width="0%";'
+            + '      document.getElementById("mr").textContent="未启用倒计时";'
+            + '    }'
+            + '  }catch(e){}'
+            + '}'
+            + 'setInterval(tick,500);tick();'
+            + '<\/script>'
+            + '</body></html>');
+        w.document.close();
     });
+
+    el.settingBtn.addEventListener('click', (e) => { e.stopPropagation(); el.settingPanel.classList.toggle('show'); });
     el.settingPanel.addEventListener('click', e => e.stopPropagation());
 
     el.mobileModeCb.addEventListener('change', () => {
+        try { localStorage.setItem(STORAGE.MOBILE_MANUAL, '1'); } catch(e) {}
         document.body.classList.toggle('mobile-mode', el.mobileModeCb.checked);
+        saveSettings();
     });
 
     function applyClockSize(){
@@ -1831,13 +2368,23 @@ document.addEventListener('DOMContentLoaded', function(){
         else if (el.clkL.checked) v = 'clamp(78px, 16vw, 116px)';
         document.documentElement.style.setProperty('--clock-font-size', v);
     }
-    [el.clkS, el.clkM, el.clkL].forEach(r => r.addEventListener('change', applyClockSize));
+    [el.clkS, el.clkM, el.clkL].forEach(r => r.addEventListener('change', () => { applyClockSize(); saveSettings(); }));
 
-    function applyClockWeight(){
-        const w = document.querySelector('input[name="clockWeight"]:checked');
-        if (w) document.documentElement.style.setProperty('--clock-weight', w.value);
+    function applyClockWeight(v){
+        document.documentElement.style.setProperty('--clock-weight', v);
+        if (el.timeStr) {
+            el.timeStr.style.fontWeight = v;
+            el.timeStr.style.fontVariationSettings = (String(v) === '100') ? '"wght" 100' : '';
+        }
     }
-    [el.w100, el.w300, el.w500].forEach(r => r.addEventListener('change', applyClockWeight));
+    el.clockWeight.addEventListener('input', () => {
+        const v = el.clockWeight.value;
+        el.clockWeightValue.textContent = v;
+        applyClockWeight(v);
+    });
+    el.clockWeight.addEventListener('change', () => {
+        saveSettings();
+    });
 
     function applyPanelVisible(){
         el.itemCountdown.style.display = el.showCountdown.checked ? 'flex' : 'none';
@@ -1847,7 +2394,7 @@ document.addEventListener('DOMContentLoaded', function(){
         el.itemExam.style.display = el.showExam.checked ? 'flex' : 'none';
     }
     [el.showCountdown, el.showTimer, el.showTodo, el.showPomodoro, el.showExam]
-        .forEach(cb => cb.addEventListener('change', applyPanelVisible));
+        .forEach(cb => cb.addEventListener('change', () => { applyPanelVisible(); saveSettings(); }));
 
     function applyExtraVisible(){
         el.weatherFooter.style.display = el.showWeather.checked ? 'block' : 'none';
@@ -1855,7 +2402,11 @@ document.addEventListener('DOMContentLoaded', function(){
         el.pomodoroTopInline.classList.toggle('show', el.showPomodoroTop.checked);
     }
     [el.showWeather, el.showHoliday, el.showPomodoroTop]
-        .forEach(cb => cb.addEventListener('change', applyExtraVisible));
+        .forEach(cb => cb.addEventListener('change', () => { applyExtraVisible(); saveSettings(); }));
+
+    [el.use12Hour].forEach(cb => cb.addEventListener('change', saveSettings));
+    [el.sayingOff, el.sayingStatic, el.sayingDaily, el.sayingPoetry]
+        .forEach(r => r.addEventListener('change', () => { loadSaying(); saveSettings(); }));
 
     function setFocusMode(on){
         focusMode = on;
@@ -1864,16 +2415,10 @@ document.addEventListener('DOMContentLoaded', function(){
         el.settingPanel.classList.remove('show');
         toast(on ? '专注模式已开启' : '专注模式已关闭');
     }
-    el.focusBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setFocusMode(!focusMode);
-    });
+    el.focusBtn.addEventListener('click', (e) => { e.stopPropagation(); setFocusMode(!focusMode); });
 
     function bindPanelToggle(btn, panel){
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            panel.classList.toggle('show');
-        });
+        btn.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('show'); });
     }
     bindPanelToggle(el.toggleCountdownBtn, el.countdownPanel);
     bindPanelToggle(el.toggleTimerBtn, el.timerPanel);
@@ -1881,28 +2426,21 @@ document.addEventListener('DOMContentLoaded', function(){
     bindPanelToggle(el.togglePomodoroBtn, el.pomodoroPanel);
     bindPanelToggle(el.toggleExamBtn, el.examPanel);
 
-    // 面板内部点击不冒泡
     [el.countdownPanel, el.timerPanel, el.todoPanel, el.pomodoroPanel, el.examPanel]
         .forEach(p => p.addEventListener('click', e => e.stopPropagation()));
 
-    // ===== 全局点击处理（排除独立组件）=====
     document.addEventListener('click', (e) => {
         const t = e.target;
-
-        // 设置面板
         if (!el.settingPanel.contains(t) && !el.settingBtn.contains(t)) {
             el.settingPanel.classList.remove('show');
         }
-
-        // 排除独立组件区域
         if (t.closest && (
             t.closest('.stats-modal') ||
             t.closest('.study-bar') ||
             t.closest('.confirm-modal') ||
-            t.closest('.top-toast')
+            t.closest('.top-toast') ||
+            t.closest('.info-modal')
         )) return;
-
-        // 右侧面板
         const panels = [el.countdownPanel, el.timerPanel, el.todoPanel, el.pomodoroPanel, el.examPanel];
         panels.forEach(panel => {
             const btn = panel.previousElementSibling;
@@ -1912,7 +2450,7 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     });
 
-    // ===== 倒计时 / 计时器 / 番茄钟 / 考试 =====
+    // 倒计时
     function readCountInput(){
         const d = +el.inpDay.value || 0;
         const h = +el.inpHour.value || 0;
@@ -1922,28 +2460,80 @@ document.addEventListener('DOMContentLoaded', function(){
         countRemain = countTotal;
         el.customCountStr.textContent = fmtCount(countRemain);
     }
-    el.startBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (countRunning) return;
+    function startCountdown(){
         readCountInput();
+        if (countTotal <= 0) { toast('请设置倒计时时长'); return; }
         countRunning = true;
+        countActive = true;
+        countdownFired = false;
+        countdownStartAt = Date.now();
+        countdownTotalMs = countTotal;
+        el.countdownProgressWrap.classList.add('show');
+        updateCountdownProgress();
+        saveCountdownState();
+        clearInterval(countTimer);
         countTimer = setInterval(() => {
-            countRemain -= MS.s;
+            const elapsed = Date.now() - countdownStartAt;
+            countRemain = Math.max(0, countdownTotalMs - elapsed);
             el.customCountStr.textContent = fmtCount(countRemain);
-            if (countRemain <= 0) {
+            updateCountdownProgress();
+            if (countRemain <= 0 && !countdownFired) {
+                countdownFired = true;
                 clearInterval(countTimer);
                 countRunning = false;
-                toast('计时已完成');
+                countActive = false;
+                el.countdownProgressWrap.classList.remove('show');
+                clearCountdownState();
+                fireReminder('倒计时结束', '你设置的倒计时已经结束');
             }
-        }, MS.s);
-    });
-    el.pauseBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+        }, 250);
+    }
+    function pauseCountdown(){
         if (!countRunning) return;
         clearInterval(countTimer);
         countRunning = false;
+        countRemain = countdownTotalMs - (Date.now() - countdownStartAt);
+        saveCountdownState();
+    }
+    function clearCountdown(){
+        clearInterval(countTimer);
+        countRunning = false;
+        countActive = false;
+        countdownFired = false;
+        countdownStartAt = 0;
+        countdownTotalMs = 0;
+        countRemain = 0;
+        el.inpDay.value = 0;
+        el.inpHour.value = 0;
+        el.inpMin.value = 5;
+        el.inpSec.value = 0;
+        countTotal = 5 * MS.m;
+        el.customCountStr.textContent = fmtCount(0);
+        el.countdownProgressWrap.classList.remove('show');
+        el.countdownProgressFill.style.width = '0%';
+        el.countdownProgressText.textContent = fmtCount(0);
+        clearCountdownState();
+    }
+
+    el.startBtn.addEventListener('click', (e) => { e.stopPropagation(); startCountdown(); });
+    el.pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); pauseCountdown(); });
+
+    let countdownClearPending = false;
+    el.countdownClearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (countdownClearPending) return;
+        const hasData = countActive || countRemain > 0 || countdownTotalMs > 0;
+        if (!hasData) { toast('倒计时已是初始状态'); return; }
+        countdownClearPending = true;
+        confirmBox('确定要清除当前倒计时吗？', () => {
+            countdownClearPending = false;
+            clearCountdown();
+            toast('倒计时已清除');
+        });
+        setTimeout(() => { countdownClearPending = false; }, 3000);
     });
 
+    // 计时器
     el.timerStart.addEventListener('click', (e) => {
         e.stopPropagation();
         if (timerRunning) return;
@@ -1975,12 +2565,34 @@ document.addEventListener('DOMContentLoaded', function(){
         el.timerMarkLog.appendChild(div);
         el.timerMarkLog.scrollTop = el.timerMarkLog.scrollHeight;
     });
+
     el.timerClearMarksBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!el.timerMarkLog.children.length) { toast('暂无标记'); return; }
         el.timerMarkLog.innerHTML = '';
         toast('标记已清除');
     });
 
+    let timerClearPending = false;
+    el.timerClearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (timerClearPending) return;
+        const hasData = timerMs > 0 || el.timerMarkLog.children.length > 0;
+        if (!hasData) { toast('计时器已是初始状态'); return; }
+        timerClearPending = true;
+        confirmBox('确定要清除计时和所有标记吗？', () => {
+            timerClearPending = false;
+            clearInterval(timerInterval);
+            timerRunning = false;
+            timerMs = 0;
+            el.timerDisplay.textContent = fmtTimer(0);
+            el.timerMarkLog.innerHTML = '';
+            toast('计时器已清除');
+        });
+        setTimeout(() => { timerClearPending = false; }, 3000);
+    });
+
+    // 番茄钟
     function updatePomoDisplay(){
         el.pomodoroCountStr.textContent = fmtMinSec(pomoRemain);
         el.pomodoroTopInline.textContent = '番茄：' + fmtMinSec(pomoRemain) + '【' + (pomoIsWork ? '工作' : '休息') + '】';
@@ -1996,21 +2608,16 @@ document.addEventListener('DOMContentLoaded', function(){
         updatePomoDisplay();
     }
     function startPomoLoop(isWork){
+        clearInterval(pomoTimer);
         pomoIsWork = isWork;
         pomoRemain = isWork ? pomoWork : pomoRest;
+        pomoEndAt = Date.now() + pomoRemain;
         el.pomodoroModeText.textContent = isWork ? '工作' : '休息';
         updatePomoDisplay();
         pomoRunning = true;
-        pomoTimer = setInterval(() => {
-            pomoRemain -= MS.s;
-            updatePomoDisplay();
-            if (pomoRemain <= 0) {
-                clearInterval(pomoTimer);
-                pomoRunning = false;
-                const tip = isWork ? '准备好开始休息了吗？' : '准备好开始工作了吗？';
-                confirmBox(tip, () => startPomoLoop(!isWork));
-            }
-        }, MS.s);
+        pomoFired = false;
+        savePomoState();
+        startPomoTick();
     }
     el.pomodoroStart.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2023,73 +2630,161 @@ document.addEventListener('DOMContentLoaded', function(){
         if (!pomoRunning) return;
         clearInterval(pomoTimer);
         pomoRunning = false;
+        pomoRemain = Math.max(0, pomoEndAt - Date.now());
+        clearPomoState();
     });
     el.pomodoroReset.addEventListener('click', (e) => {
         e.stopPropagation();
         clearInterval(pomoTimer);
         pomoRunning = false;
+        clearPomoState();
         loadPomo();
     });
 
-    function updateExam(){
-        if (!el.examShowSwitch.checked || !examTarget) {
-            el.examCountWrap.style.display = 'none';
-            return;
-        }
-        el.examCountWrap.style.display = 'block';
-        const diff = examTarget - Date.now();
-        if (diff <= 0) {
-            el.examCountText.textContent = '考试已结束';
-            return;
-        }
-        const day = Math.floor(diff / MS.d);
-        const h = Math.floor((diff % MS.d) / MS.h);
-        const m = Math.floor((diff % MS.h) / MS.m);
-        el.examCountText.textContent = '距离考试：' + day + '天 ' + h + '时' + m + '分';
+    // 自定义倒计时
+    function loadExam(){
+        try {
+            const title = localStorage.getItem(STORAGE.EXAM_TITLE);
+            if (title) { examTitleText = title; el.examTitle.value = title; }
+            const dateStr = localStorage.getItem(STORAGE.EXAM_DATE);
+            if (dateStr) {
+                const ts = parseInt(dateStr, 10);
+                if (ts > 0) {
+                    examTarget = ts;
+                    const d = new Date(ts);
+                    el.examY.value = d.getFullYear();
+                    el.examM.value = d.getMonth() + 1;
+                    el.examD.value = d.getDate();
+                }
+            }
+            const show = localStorage.getItem(STORAGE.EXAM_SHOW);
+            if (show === '1') el.examShowSwitch.checked = true;
+        } catch(e) {}
     }
-    el.examShowSwitch.addEventListener('change', updateExam);
+    function saveExam(){
+        try {
+            localStorage.setItem(STORAGE.EXAM_TITLE, examTitleText);
+            if (examTarget) localStorage.setItem(STORAGE.EXAM_DATE, String(examTarget));
+            localStorage.setItem(STORAGE.EXAM_SHOW, el.examShowSwitch.checked ? '1' : '0');
+        } catch(e) {}
+    }
+    el.examTitle.addEventListener('input', () => {
+        examTitleText = el.examTitle.value.trim() || '考试';
+        saveExam();
+        tickExam();
+    });
+    el.examShowSwitch.addEventListener('change', () => { saveExam(); tickExam(); });
     el.examSetBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const y = +el.examY.value;
         const m = +el.examM.value;
         const d = +el.examD.value;
-        if (!y || !m || !d) return;
+        if (!y || !m || !d) { toast('请填写完整的年月日'); return; }
         examTarget = new Date(y, m - 1, d, 0, 0, 0).getTime();
-        updateExam();
+        examTitleText = el.examTitle.value.trim() || '考试';
+        saveExam();
+        tickExam();
+        toast('已设置：' + examTitleText);
     });
 
-    // ===== 天气 =====
-    function clearWeather(){
-        document.querySelectorAll('.star,.rain').forEach(n => n.remove());
-    }
-    function createStars(){
-        for (let i = 0; i < 40; i++) {
-            const s = document.createElement('div');
-            s.className = 'star';
-            s.style.left = Math.random() * 100 + '%';
-            s.style.top = Math.random() * 48 + '%';
-            s.style.animationDelay = Math.random() * 3 + 's';
-            el.skyWrap.appendChild(s);
+    // 待办事件
+    el.todoPrevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!todoList.length) return;
+        currentTaskIdx = (currentTaskIdx - 1 + todoList.length) % todoList.length;
+        updateTodoNav(); updateStudyBar();
+    });
+    el.todoNextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!todoList.length) return;
+        currentTaskIdx = (currentTaskIdx + 1) % todoList.length;
+        updateTodoNav(); updateStudyBar();
+    });
+    el.todoStatsBtn.addEventListener('click', (e) => { e.stopPropagation(); showStats(); });
+    el.statsModalClose.addEventListener('click', (e) => { e.stopPropagation(); hideStats(); });
+    el.statsModal.addEventListener('click', (e) => { if (e.target === el.statsModal) hideStats(); });
+    el.todoPlannedMin.addEventListener('change', () => {
+        const task = getCurrentTask();
+        if (task) {
+            task.plannedMin = Math.max(1, +el.todoPlannedMin.value || 25);
+            el.todoPlannedMin.value = task.plannedMin;
+            saveTodo();
         }
-    }
-    function createRain(){
-        for (let i = 0; i < 30; i++) {
-            const r = document.createElement('div');
-            r.className = 'rain';
-            r.style.left = Math.random() * 100 + '%';
-            r.style.animationDelay = Math.random() * 0.8 + 's';
-            el.skyWrap.appendChild(r);
+    });
+    el.todoAddBtn.addEventListener('click', (e) => { e.stopPropagation(); addTodo(); });
+    el.todoInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+    el.todoInput.addEventListener('click', e => e.stopPropagation());
+    el.todoListBox.addEventListener('click', e => {
+        e.stopPropagation();
+        if (e.target.classList.contains('todo-del')) {
+            const idx = +e.target.dataset.del;
+            if (isNaN(idx)) return;
+            todoList.splice(idx, 1);
+            if (currentTaskIdx >= todoList.length) currentTaskIdx = Math.max(0, todoList.length - 1);
+            else if (currentTaskIdx > idx) currentTaskIdx--;
+            saveTodo(); updateTodoNav(); updateStudyBar();
+            return;
         }
-    }
-    function updateWeatherEffect(type){
-        if (weatherLock) return;
-        weatherLock = true;
-        setTimeout(() => weatherLock = false, 1500);
-        clearWeather();
-        const night = new Date().getHours() >= 20 || new Date().getHours() < 6;
-        if (type === 'clear' && night) createStars();
-        if (type === 'rainy') createRain();
-    }
+        if (e.target.tagName === 'INPUT' && e.target.dataset.check !== undefined) {
+            const idx = +e.target.dataset.check;
+            if (isNaN(idx)) return;
+            todoList[idx].done = !todoList[idx].done;
+            saveTodo(); updateTodoNav();
+            return;
+        }
+        const item = e.target.closest('.todo-item');
+        if (item) {
+            const idx = +item.dataset.item;
+            if (!isNaN(idx) && idx !== currentTaskIdx) {
+                currentTaskIdx = idx;
+                updateTodoNav(); updateStudyBar();
+            }
+        }
+    });
+    el.studyStartBtn.addEventListener('click', (e) => { e.stopPropagation(); startStudy(); });
+    el.studyBreakBtn.addEventListener('click', (e) => { e.stopPropagation(); breakStudy(); });
+    el.studyEndBtn.addEventListener('click', (e) => { e.stopPropagation(); endStudy(); });
+    el.showStudyBar.addEventListener('change', () => {
+        try { localStorage.setItem(STORAGE.SHOW_STUDY_BAR, el.showStudyBar.checked ? '1' : '0'); } catch(e) {}
+        saveSettings();
+        updateStudyBar();
+    });
+    el.todoStudyToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        el.showStudyBar.checked = !el.showStudyBar.checked;
+        try { localStorage.setItem(STORAGE.SHOW_STUDY_BAR, el.showStudyBar.checked ? '1' : '0'); } catch(e) {}
+        saveSettings();
+        updateStudyBar();
+    });
+
+    // 键盘快捷键
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (e.key === 'Escape') {
+            el.settingPanel.classList.remove('show');
+            el.countdownPanel.classList.remove('show');
+            el.timerPanel.classList.remove('show');
+            el.todoPanel.classList.remove('show');
+            el.pomodoroPanel.classList.remove('show');
+            el.examPanel.classList.remove('show');
+            closeDevNote(); closeTutorial(); closeShortcuts();
+            return;
+        }
+        if (e.key === ' ') {
+            e.preventDefault();
+            if (countRunning) pauseCountdown();
+            else startCountdown();
+            return;
+        }
+        if (e.key === 't' || e.key === 'T') { el.todoPanel.classList.toggle('show'); return; }
+        if (e.key === 'c' || e.key === 'C') { el.countdownPanel.classList.toggle('show'); return; }
+        if (e.key === 'p' || e.key === 'P') { el.pomodoroPanel.classList.toggle('show'); return; }
+        if (e.key === 'f' || e.key === 'F') { setFocusMode(!focusMode); return; }
+        if (e.key === 's' || e.key === 'S') { el.settingPanel.classList.toggle('show'); return; }
+        if (e.key === 'm' || e.key === 'M') { el.openMiniBtn.click(); return; }
+    });
+
+    // 天气
     async function fetchWeather(lat, lon){
         const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,weather_code&daily=sunrise,sunset&timezone=auto';
         try {
@@ -2124,32 +2819,72 @@ document.addEventListener('DOMContentLoaded', function(){
             el.weatherFooter.textContent = '天气｜--℃｜接口不可用';
             weatherType = 'clear';
         }
-        updateWeatherEffect(weatherType);
+        // 天气类型确定后同步一次星空/雨滴可见性
+        syncSkyElements();
     }
 
-    // ===== 模式切换 =====
-    [el.sayingOff, el.sayingStatic, el.sayingDaily, el.sayingPoetry]
-        .forEach(r => r.addEventListener('change', loadSaying));
+    // 初始化
+    loadSettings();
 
-    // ===== 恢复学习条开关 =====
+    try {
+        const manual = localStorage.getItem(STORAGE.MOBILE_MANUAL) === '1';
+        if (!manual && window.innerWidth < 600) {
+            el.mobileModeCb.checked = true;
+            document.body.classList.add('mobile-mode');
+        } else if (el.mobileModeCb.checked) {
+            document.body.classList.add('mobile-mode');
+        }
+    } catch(e) {}
+
     try {
         const savedShowStudyBar = localStorage.getItem(STORAGE.SHOW_STUDY_BAR);
         if (savedShowStudyBar === '0') el.showStudyBar.checked = false;
     } catch(e) {}
 
-    // ===== 初始化 =====
     loadTodo();
     updateTodoNav();
     updateStudyBar();
+    loadExam();
     applyClockSize();
-    applyClockWeight();
+    applyClockWeight(el.clockWeight.value);
     applyPanelVisible();
     applyExtraVisible();
     loadPomo();
     loadSaying();
-    setInterval(tick, 500);
-    tick();
+    restoreCountdownState();
+    restorePomoState();
+    firstPaint();
+    scheduleTick();
     initWeather();
+
+    let devNoteSeen = false, tutorialSeen = false;
+    try {
+        devNoteSeen = localStorage.getItem(STORAGE.DEV_NOTE_SEEN) === '1';
+        tutorialSeen = localStorage.getItem(STORAGE.TUTORIAL_SEEN) === '1';
+    } catch(e) {}
+    if (!tutorialSeen) {
+        setTimeout(openTutorial, 600);
+    } else if (!devNoteSeen) {
+        setTimeout(openDevNote, 600);
+    }
+
+    const initAudioOnInteraction = () => {
+        initAudio();
+        document.removeEventListener('click', initAudioOnInteraction);
+        document.removeEventListener('touchstart', initAudioOnInteraction);
+        document.removeEventListener('keydown', initAudioOnInteraction);
+    };
+    document.addEventListener('click', initAudioOnInteraction);
+    document.addEventListener('touchstart', initAudioOnInteraction);
+    document.addEventListener('keydown', initAudioOnInteraction);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            tickClock();
+            tickSky(true);
+            tickExam();
+        }
+    });
 });
 </script>
 </body>

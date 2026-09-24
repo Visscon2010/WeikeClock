@@ -106,7 +106,6 @@
         animation: rainFall 0.8s linear infinite;
     }
 
-    /* 星空 / 雨滴图层：平滑淡入淡出 */
     .stars-layer, .rain-layer {
         position: absolute; inset: 0;
         pointer-events: none;
@@ -625,6 +624,7 @@
     }
     .ampm-tag { font-size: 0.5em; }
 
+    /* ===== 进度条通用样式 ===== */
     .countdown-progress-wrap {
         margin-top: 18px;
         width: min(420px, 80vw);
@@ -645,11 +645,22 @@
         background: linear-gradient(90deg, #428bff, #87CEEB);
         border-radius: 2px;
         box-shadow: 0 0 8px rgba(74, 144, 217, 0.5);
+        transition: width 0.25s linear;
     }
     .countdown-progress-text {
         color: rgba(255,255,255,0.9);
         font-size: 14px; letter-spacing: 2px;
     }
+
+    /* ===== 番茄钟进度条：橙色系 ===== */
+    .pomodoro-progress-wrap {
+        margin-top: 8px;
+    }
+    .pomodoro-progress-wrap .countdown-progress-fill {
+        background: linear-gradient(90deg, #ff8c42, #ffb86b);
+        box-shadow: 0 0 8px rgba(255, 140, 66, 0.5);
+    }
+
     .main-saying {
         margin-top: 24px;
         color: rgba(255,255,255,0.85);
@@ -1079,6 +1090,13 @@
         </div>
         <div class="countdown-progress-text" id="countdownProgressText">00天 00时00分00秒</div>
     </div>
+    <!-- ===== 番茄钟进度条（新增） ===== -->
+    <div class="countdown-progress-wrap pomodoro-progress-wrap" id="pomodoroProgressWrap">
+        <div class="countdown-progress-bar">
+            <div class="countdown-progress-fill" id="pomodoroProgressFill"></div>
+        </div>
+        <div class="countdown-progress-text" id="pomodoroProgressText">25分00秒【工作】</div>
+    </div>
     <div class="main-saying" id="mainSaying"></div>
     <div class="holiday-countdown-text" id="holidayCountStr"></div>
 </div>
@@ -1127,6 +1145,7 @@
             <p><strong>主界面</strong><br>中央是实时时钟。右侧竖排按钮依次为：倒计时、计时器、待办、番茄钟、自定义倒计时。左上角有设置和专注模式。</p>
             <p><strong>倒计时</strong><br>在右侧面板输入天数/小时/分钟/秒，点击开始。进度条会显示在主屏幕时钟下方，方便直观感受时间流逝。结束时会有声音和通知提醒。想中途放弃时，点红色「清除」按钮即可停止并重置倒计时。</p>
             <p><strong>计时器</strong><br>秒表计时，可以标记、重置。底部「清除」按钮一键停止计时、归零并清空所有标记记录（带确认，防误触）。</p>
+            <p><strong>番茄钟</strong><br>设置工作和休息时长后点击开始。主屏幕时钟下方会显示橙色进度条，直观看到当前阶段进度。工作结束自动弹出提示，可选择进入休息或继续工作。</p>
             <p><strong>待办与学习</strong><br>打开待办面板添加任务，主屏幕会显示学习控制条。点「开始学习」记录专注时间，「摸鱼休息」暂停计时，「学习结束」结算本次。待办面板的图表按钮可查看每个任务的专注统计和专注率。</p>
             <p><strong>自定义倒计时</strong><br>可以给倒计时起个名字（默认"考试"），比如"生日""假期"等。设置完成后打开"显示到主界面"开关，主屏幕就会显示你的专属倒计时。</p>
             <p><strong>个性化</strong><br>设置里可以调整时钟大小、时钟粗细（拖动滑块）、名言模式（静态句子 / 每日一言 / 每日诗词）、是否显示各模块。专注模式会隐藏右侧面板，保留学习条。</p>
@@ -1263,6 +1282,10 @@ document.addEventListener('DOMContentLoaded', function(){
         countdownProgressWrap: $('countdownProgressWrap'),
         countdownProgressFill: $('countdownProgressFill'),
         countdownProgressText: $('countdownProgressText'),
+        /* 番茄钟进度条 */
+        pomodoroProgressWrap: $('pomodoroProgressWrap'),
+        pomodoroProgressFill: $('pomodoroProgressFill'),
+        pomodoroProgressText: $('pomodoroProgressText'),
         devNoteModal: $('devNoteModal'),
         devNoteLaterBtn: $('devNoteLaterBtn'),
         devNoteDontShowBtn: $('devNoteDontShowBtn'),
@@ -1340,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', function(){
     let lastExamText = '';
     let holidayCache = { dateKey: '', text: '' };
 
-    /* ===== 星空 / 雨滴图层状态 ===== */
+    /* 星空 / 雨滴图层状态 */
     let lastNightState = null;
     let starsLayer = null;
     let rainLayer = null;
@@ -1663,7 +1686,6 @@ document.addEventListener('DOMContentLoaded', function(){
         const set = sunsetTs || new Date().setHours(19, 0, 0, 0);
         const isNight = now < rise || now >= set;
 
-        // 星星：晴朗夜晚显示
         if (weatherType === 'clear' && isNight) {
             createStars();
             starsLayer.classList.add('show');
@@ -1671,7 +1693,6 @@ document.addEventListener('DOMContentLoaded', function(){
             starsLayer.classList.remove('show');
         }
 
-        // 雨滴：下雨时显示
         if (weatherType === 'rainy') {
             createRain();
             rainLayer.classList.add('show');
@@ -1760,7 +1781,6 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         document.body.classList.toggle('day-theme', isDay);
 
-        /* ===== 昼夜切换时刷新星空可见性 ===== */
         const isNight = !isDay;
         if (isNight !== lastNightState) {
             lastNightState = isNight;
@@ -1818,7 +1838,7 @@ document.addEventListener('DOMContentLoaded', function(){
         tickExam();
     }
 
-    // ===== 每日一言 =====
+    // ===== 每日一言（已改回原 UAPI 接口）=====
     async function fetchSayingFromUapi(){
         try {
             const res = await fetchWithTimeout('https://uapis.cn/api/v1/saying/random?mode=daily', 8000);
@@ -2184,6 +2204,7 @@ document.addEventListener('DOMContentLoaded', function(){
             pomoRunning = true;
             el.pomodoroModeText.textContent = pomoIsWork ? '工作' : '休息';
             updatePomoDisplay();
+            el.pomodoroProgressWrap.classList.add('show');
             startPomoTick();
         } catch(e) {}
     }
@@ -2592,10 +2613,16 @@ document.addEventListener('DOMContentLoaded', function(){
         setTimeout(() => { timerClearPending = false; }, 3000);
     });
 
-    // 番茄钟
+    // 番茄钟（新增进度条支持）
     function updatePomoDisplay(){
         el.pomodoroCountStr.textContent = fmtMinSec(pomoRemain);
         el.pomodoroTopInline.textContent = '番茄：' + fmtMinSec(pomoRemain) + '【' + (pomoIsWork ? '工作' : '休息') + '】';
+        // 更新主屏幕进度条
+        const total = pomoIsWork ? pomoWork : pomoRest;
+        const elapsed = total - pomoRemain;
+        const pct = total > 0 ? Math.min(100, Math.max(0, elapsed / total * 100)) : 0;
+        el.pomodoroProgressFill.style.width = pct + '%';
+        el.pomodoroProgressText.textContent = fmtMinSec(pomoRemain) + '【' + (pomoIsWork ? '工作' : '休息') + '】';
     }
     function loadPomo(){
         const w = +el.pomodoroWorkMin.value || 25;
@@ -2616,6 +2643,8 @@ document.addEventListener('DOMContentLoaded', function(){
         updatePomoDisplay();
         pomoRunning = true;
         pomoFired = false;
+        // 显示主屏幕进度条
+        el.pomodoroProgressWrap.classList.add('show');
         savePomoState();
         startPomoTick();
     }
@@ -2631,6 +2660,7 @@ document.addEventListener('DOMContentLoaded', function(){
         clearInterval(pomoTimer);
         pomoRunning = false;
         pomoRemain = Math.max(0, pomoEndAt - Date.now());
+        updatePomoDisplay();
         clearPomoState();
     });
     el.pomodoroReset.addEventListener('click', (e) => {
@@ -2639,6 +2669,9 @@ document.addEventListener('DOMContentLoaded', function(){
         pomoRunning = false;
         clearPomoState();
         loadPomo();
+        // 隐藏主屏幕进度条
+        el.pomodoroProgressWrap.classList.remove('show');
+        el.pomodoroProgressFill.style.width = '0%';
     });
 
     // 自定义倒计时
@@ -2819,7 +2852,6 @@ document.addEventListener('DOMContentLoaded', function(){
             el.weatherFooter.textContent = '天气｜--℃｜接口不可用';
             weatherType = 'clear';
         }
-        // 天气类型确定后同步一次星空/雨滴可见性
         syncSkyElements();
     }
 

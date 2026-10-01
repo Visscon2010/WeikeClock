@@ -69,6 +69,34 @@
     }
     body.modal-open .sky-bg { transition: none; }
 
+    /* 动态微粒层 */
+    .particle-layer {
+        position: absolute; inset: 0;
+        z-index: 3;
+        pointer-events: none;
+        display: none;
+        overflow: hidden;
+    }
+    .particle-layer.show { display: block; }
+    .particle {
+        position: absolute;
+        bottom: -10px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.85);
+        box-shadow: 0 0 6px rgba(180,220,255,0.55), 0 0 12px rgba(120,180,255,0.3);
+        animation-name: particleRise;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        will-change: transform, opacity;
+    }
+    @keyframes particleRise {
+        0%   { transform: translateY(0); opacity: 0; }
+        8%   { opacity: 1; }
+        92%  { opacity: 1; }
+        100% { transform: translateY(calc(-100vh - 20px)); opacity: 0; }
+    }
+    body.modal-open .particle { animation-play-state: paused; }
+
     .sun, .moon {
         position: absolute;
         top: 50%; left: 50%;
@@ -182,6 +210,58 @@
         box-shadow: 0 0 16px rgba(255, 95, 110, 0.25);
     }
 
+    /* ===== 白天主题：加深按钮和面板，保证对比度 ===== */
+    body.day-theme {
+        --btn-bg: rgba(0,0,0,0.48);
+        --panel-bg: rgba(10,16,28,0.82);
+    }
+    body.day-theme .setting-btn,
+    body.day-theme .focus-btn,
+    body.day-theme .toggle-btn,
+    body.day-theme .todo-nav-btn,
+    body.day-theme .todo-add-btn,
+    body.day-theme .todo-study-toggle,
+    body.day-theme .ctrl-buttons button,
+    body.day-theme .setting-action-btn,
+    body.day-theme .timer-clear-row button,
+    body.day-theme .study-btn {
+        border-color: rgba(0,0,0,0.35);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        color: #fff;
+    }
+    body.day-theme .setting-btn:hover,
+    body.day-theme .focus-btn:hover,
+    body.day-theme .toggle-btn:hover {
+        background: rgba(0,0,0,0.62);
+        border-color: rgba(0,0,0,0.45);
+    }
+    body.day-theme .panel,
+    body.day-theme .setting-panel,
+    body.day-theme .study-bar,
+    body.day-theme .stats-modal {
+        box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    }
+    body.day-theme .time-display {
+        background: rgba(0,0,0,0.42);
+        color: #fff;
+    }
+    body.day-theme .weather-footer,
+    body.day-theme .holiday-countdown-text {
+        color: rgba(255,255,255,0.92);
+        text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+    }
+    body.day-theme .copyright {
+        color: rgba(255,255,255,0.7);
+        text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    body.day-theme .main-saying {
+        color: rgba(255,255,255,0.95);
+        text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+    }
+    body.day-theme .exam-count-text {
+        text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+    }
+
     .setting-panel {
         margin-top: 8px;
         padding: var(--panel-padding);
@@ -231,10 +311,6 @@
         border-radius: 2px;
         outline: none;
         cursor: pointer;
-        transition: background 0.2s;
-    }
-    .slider-row input[type="range"]:hover {
-        background: rgba(255,255,255,0.28);
     }
     .slider-row input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
@@ -245,22 +321,11 @@
         background: #fff;
         cursor: pointer;
         box-shadow: 0 0 10px rgba(135,206,235,0.7);
-        transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .slider-row input[type="range"]::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-        box-shadow: 0 0 14px rgba(135,206,235,1);
-    }
-    .slider-row input[type="range"]::-webkit-slider-thumb:active {
-        transform: scale(1.05);
     }
     .slider-row input[type="range"]::-moz-range-thumb {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: #fff;
-        cursor: pointer;
-        border: none;
+        width: 18px; height: 18px;
+        border-radius: 50%; background: #fff;
+        cursor: pointer; border: none;
         box-shadow: 0 0 10px rgba(135,206,235,0.7);
     }
     .slider-value {
@@ -384,7 +449,6 @@
         background: rgba(255,255,255,0.42);
         border-color: rgba(255,255,255,0.45);
     }
-    .ctrl-buttons button.wide { flex: 2; }
     .ctrl-buttons button.danger {
         border-color: rgba(255,140,150,0.5);
         background: rgba(255,95,110,0.2);
@@ -414,7 +478,7 @@
         border-radius: 5px; color: #fff;
         cursor: pointer; font-size: 16px;
         line-height: 1; font-family: inherit;
-        transition: all 0.2s; flex-shrink: 0;
+        flex-shrink: 0;
     }
     .todo-nav-btn:hover { background: rgba(255,255,255,0.35); }
     .todo-nav-title {
@@ -513,7 +577,7 @@
         display: none; flex-direction: column;
         align-items: center; gap: 8px;
         padding: 12px 20px;
-        background: rgba(0,0,0,0.55);
+        background: rgba(0,0,0,0.6);
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(255,255,255,0.2);
@@ -624,7 +688,6 @@
     }
     .ampm-tag { font-size: 0.5em; }
 
-    /* ===== 进度条通用样式 ===== */
     .countdown-progress-wrap {
         margin-top: 18px;
         width: min(420px, 80vw);
@@ -651,8 +714,6 @@
         color: rgba(255,255,255,0.9);
         font-size: 14px; letter-spacing: 2px;
     }
-
-    /* ===== 番茄钟进度条：橙色系 ===== */
     .pomodoro-progress-wrap {
         margin-top: 8px;
     }
@@ -775,10 +836,6 @@
     .pomodoro-row { margin-bottom: 8px; }
     .pomodoro-label { font-size: var(--ui-font); margin-right: 4px; }
 
-    body.day-theme {
-        --btn-bg: rgba(255,255,255,0.32);
-        --panel-bg: rgba(255,255,255,0.28);
-    }
     body.mobile-mode {
         --clock-font-size: clamp(40px, 14vw, 64px);
         --quote-font-size: 12px;
@@ -817,6 +874,7 @@
 
 <div class="sky">
     <div class="sky-bg" id="skyBg"></div>
+    <div class="particle-layer" id="particleLayer"></div>
     <div class="sun" id="sun"></div>
     <div class="moon" id="moon"></div>
 </div>
@@ -865,6 +923,10 @@
             <input type="range" id="clockWeight" min="100" max="900" step="50" value="300">
             <span class="slider-value" id="clockWeightValue">300</span>
         </div>
+
+        <div class="setting-section-title">背景模式</div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="bgMode" value="auto" id="bgAuto" checked>24小时变化</label></div>
+        <div class="setting-row-sub"><label style="display:flex;align-items:center;gap:8px;"><input type="radio" name="bgMode" value="particles" id="bgParticles">动态微粒</label></div>
 
         <div class="setting-section-title">模块显示</div>
         <div class="setting-row">
@@ -939,19 +1001,10 @@
             </div>
             <div class="count-display" id="customCountStr">0天 00时05分00秒</div>
             <div class="ctrl-buttons">
-                <button id="startBtn" title="开始">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-                <button id="pauseBtn" title="暂停">
-                    <svg class="btn-icon" viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1.5"/><rect x="14" y="5" width="3" height="14" rx="1.5"/></svg>
-                </button>
+                <button id="startBtn" title="开始"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+                <button id="pauseBtn" title="暂停"><svg class="btn-icon" viewBox="0 0 24 24"><rect x="7" y="5" width="3" height="14" rx="1.5"/><rect x="14" y="5" width="3" height="14" rx="1.5"/></svg></button>
                 <button id="countdownClearBtn" class="danger" title="清除倒计时">
-                    <svg class="btn-icon" viewBox="0 0 24 24">
-                        <path d="M3 6h18"/>
-                        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        <path d="M10 11v6M14 11v6"/>
-                    </svg>
+                    <svg class="btn-icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
                 </button>
             </div>
         </div>
@@ -973,23 +1026,9 @@
                 标记记录：
                 <div id="timerMarkLog" style="max-height:80px;overflow:auto;margin-top:4px;"></div>
             </div>
-
             <div class="timer-clear-row">
-                <button id="timerClearMarksBtn" title="只清除标记记录">
-                    <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-                        <path d="M6 3v18"/><path d="M6 5h10l-2 4 2 4H6"/>
-                    </svg>
-                    <span>清除标记</span>
-                </button>
-                <button id="timerClearBtn" class="timer-clear-danger" title="停止计时、清零并清除所有标记">
-                    <svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
-                        <path d="M3 6h18"/>
-                        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        <path d="M10 11v6M14 11v6"/>
-                    </svg>
-                    <span>清除</span>
-                </button>
+                <button id="timerClearMarksBtn"><svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M6 3v18"/><path d="M6 5h10l-2 4 2 4H6"/></svg><span>清除标记</span></button>
+                <button id="timerClearBtn" class="timer-clear-danger"><svg class="btn-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span>清除</span></button>
             </div>
         </div>
     </div>
@@ -1090,7 +1129,6 @@
         </div>
         <div class="countdown-progress-text" id="countdownProgressText">00天 00时00分00秒</div>
     </div>
-    <!-- ===== 番茄钟进度条（新增） ===== -->
     <div class="countdown-progress-wrap pomodoro-progress-wrap" id="pomodoroProgressWrap">
         <div class="countdown-progress-bar">
             <div class="countdown-progress-fill" id="pomodoroProgressFill"></div>
@@ -1143,12 +1181,13 @@
         <div class="info-modal-header">使用教程</div>
         <div class="info-modal-body">
             <p><strong>主界面</strong><br>中央是实时时钟。右侧竖排按钮依次为：倒计时、计时器、待办、番茄钟、自定义倒计时。左上角有设置和专注模式。</p>
-            <p><strong>倒计时</strong><br>在右侧面板输入天数/小时/分钟/秒，点击开始。进度条会显示在主屏幕时钟下方，方便直观感受时间流逝。结束时会有声音和通知提醒。想中途放弃时，点红色「清除」按钮即可停止并重置倒计时。</p>
+            <p><strong>背景模式</strong><br>设置里可选「24小时变化」（背景随时间从黎明渐变到深夜）或「动态微粒」（灰黑色背景，微粒缓慢从下往上飘）。</p>
+            <p><strong>倒计时</strong><br>输入天数/小时/分钟/秒，点击开始。进度条会显示在主屏幕时钟下方。结束时会有声音提醒。想中途放弃时，点红色「清除」按钮即可停止并重置。</p>
             <p><strong>计时器</strong><br>秒表计时，可以标记、重置。底部「清除」按钮一键停止计时、归零并清空所有标记记录（带确认，防误触）。</p>
-            <p><strong>番茄钟</strong><br>设置工作和休息时长后点击开始。主屏幕时钟下方会显示橙色进度条，直观看到当前阶段进度。工作结束自动弹出提示，可选择进入休息或继续工作。</p>
-            <p><strong>待办与学习</strong><br>打开待办面板添加任务，主屏幕会显示学习控制条。点「开始学习」记录专注时间，「摸鱼休息」暂停计时，「学习结束」结算本次。待办面板的图表按钮可查看每个任务的专注统计和专注率。</p>
-            <p><strong>自定义倒计时</strong><br>可以给倒计时起个名字（默认"考试"），比如"生日""假期"等。设置完成后打开"显示到主界面"开关，主屏幕就会显示你的专属倒计时。</p>
-            <p><strong>个性化</strong><br>设置里可以调整时钟大小、时钟粗细（拖动滑块）、名言模式（静态句子 / 每日一言 / 每日诗词）、是否显示各模块。专注模式会隐藏右侧面板，保留学习条。</p>
+            <p><strong>番茄钟</strong><br>设置工作和休息时长后点击开始。主屏幕时钟下方会显示橙色进度条。工作结束自动弹出提示。</p>
+            <p><strong>待办与学习</strong><br>打开待办面板添加任务，主屏幕会显示学习控制条。点「开始学习」记录专注时间，「摸鱼休息」暂停，「学习结束」结算本次。图表按钮可查看每个任务的专注统计。</p>
+            <p><strong>自定义倒计时</strong><br>可以给倒计时起个名字（默认"考试"）。设置完成后打开"显示到主界面"开关。</p>
+            <p><strong>个性化</strong><br>可调整时钟大小、粗细（拖动滑块）、名言模式、是否显示各模块。</p>
             <p>所有数据都保存在你的浏览器本地，不会上传到任何服务器。 🌿</p>
         </div>
         <div class="info-modal-footer">
@@ -1188,6 +1227,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const el = {
         skyBg: $('skyBg'), sun: $('sun'), moon: $('moon'),
         skyWrap: document.querySelector('.sky'),
+        particleLayer: $('particleLayer'),
         timeStr: $('timeStr'),
         weatherFooter: $('weatherFooter'),
         holidayCountStr: $('holidayCountStr'),
@@ -1204,6 +1244,8 @@ document.addEventListener('DOMContentLoaded', function(){
         clkS: $('clkS'), clkM: $('clkM'), clkL: $('clkL'),
         clockWeight: $('clockWeight'),
         clockWeightValue: $('clockWeightValue'),
+        bgAuto: $('bgAuto'),
+        bgParticles: $('bgParticles'),
         showCountdown: $('showCountdown'),
         showTimer: $('showTimer'),
         showTodo: $('showTodo'),
@@ -1282,7 +1324,6 @@ document.addEventListener('DOMContentLoaded', function(){
         countdownProgressWrap: $('countdownProgressWrap'),
         countdownProgressFill: $('countdownProgressFill'),
         countdownProgressText: $('countdownProgressText'),
-        /* 番茄钟进度条 */
         pomodoroProgressWrap: $('pomodoroProgressWrap'),
         pomodoroProgressFill: $('pomodoroProgressFill'),
         pomodoroProgressText: $('pomodoroProgressText'),
@@ -1329,6 +1370,8 @@ document.addEventListener('DOMContentLoaded', function(){
         51:['小雨','rainy'], 53:['中雨','rainy'], 55:['大雨','rainy'],
         61:['小雨','rainy'], 63:['中雨','rainy'], 65:['大雨','rainy']
     };
+    /* 文言特征字：出现即认为是古文，不接受 */
+    const CLASSICAL_MARKERS = ['矣','焉','兮','哉','曰','曷','奚','汝','耶'];
 
     let sunriseTs = null, sunsetTs = null;
     let weatherType = 'clear';
@@ -1362,14 +1405,41 @@ document.addEventListener('DOMContentLoaded', function(){
     let lastSkyUpdate = 0;
     let lastExamText = '';
     let holidayCache = { dateKey: '', text: '' };
+    let bgMode = 'auto';           // 'auto' | 'particles'
+    let particlesCreated = false;
 
-    /* 星空 / 雨滴图层状态 */
     let lastNightState = null;
     let starsLayer = null;
     let rainLayer = null;
 
     const pad2 = n => String(Math.max(0, Math.floor(n))).padStart(2, '0');
     const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    /* ============================================================
+     * 一、现代中文过滤（拒绝英文、古文）
+     * ============================================================ */
+    function isModernChinese(str){
+        if (!str || typeof str !== 'string') return false;
+        const t = str.trim();
+        if (t.length < 4 || t.length > 120) return false;
+
+        // 中文字符占比 >= 70%（避免中英混排、英文句子）
+        const chineseChars = t.match(/[\u4e00-\u9fa5]/g) || [];
+        const totalNonSpace = t.replace(/\s/g, '').length;
+        if (totalNonSpace === 0) return false;
+        if (chineseChars.length / totalNonSpace < 0.7) return false;
+
+        // 含典型文言标志字 → 拒绝
+        for (const m of CLASSICAL_MARKERS) {
+            if (t.includes(m)) return false;
+        }
+
+        // 连续两个以上全角/半角句读点组成的古诗词分段 → 拒绝
+        // 例如 "……""、……"等（不严格，主要是过滤常见古文格式）
+        // 这里简单检查：如果出现"；"且句子很短，可能是古诗词——但为了不过度过滤，先跳过
+
+        return true;
+    }
 
     // ===== 设置持久化 =====
     function loadSettings(){
@@ -1384,6 +1454,11 @@ document.addEventListener('DOMContentLoaded', function(){
             if (raw.clockWeight !== undefined) {
                 el.clockWeight.value = raw.clockWeight;
                 el.clockWeightValue.textContent = raw.clockWeight;
+            }
+            if (raw.bgMode) {
+                bgMode = raw.bgMode;
+                const r = document.querySelector('input[name="bgMode"][value="' + raw.bgMode + '"]');
+                if (r) r.checked = true;
             }
             if (raw.showCountdown !== undefined) el.showCountdown.checked = raw.showCountdown;
             if (raw.showTimer !== undefined) el.showTimer.checked = raw.showTimer;
@@ -1410,6 +1485,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 mobileMode: el.mobileModeCb.checked,
                 clockSize: clockSizeEl ? clockSizeEl.value : 'medium',
                 clockWeight: el.clockWeight.value,
+                bgMode: bgMode,
                 showCountdown: el.showCountdown.checked,
                 showTimer: el.showTimer.checked,
                 showTodo: el.showTodo.checked,
@@ -1650,7 +1726,64 @@ document.addEventListener('DOMContentLoaded', function(){
         return candidates[0];
     }
 
-    /* ===== 星空 / 雨滴：图层方案 ===== */
+    /* ============================================================
+     * 二、动态微粒背景
+     * ============================================================ */
+    function createParticles(){
+        if (particlesCreated) return;
+        particlesCreated = true;
+        const layer = el.particleLayer;
+        if (!layer) return;
+        const COUNT = 70;
+        for (let i = 0; i < COUNT; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            // 随机水平位置
+            p.style.left = (Math.random() * 100).toFixed(2) + '%';
+            // 随机大小 1~3px
+            const size = 1 + Math.random() * 2;
+            p.style.width = size.toFixed(2) + 'px';
+            p.style.height = size.toFixed(2) + 'px';
+            // 随机速度 25~70 秒
+            const duration = 25 + Math.random() * 45;
+            // 随机负延迟，让粒子错落分布
+            const delay = -Math.random() * duration;
+            p.style.animationDuration = duration.toFixed(2) + 's';
+            p.style.animationDelay = delay.toFixed(2) + 's';
+            // 随机初始透明度（通过 box-shadow 亮度稍微区分）
+            const brightness = 0.5 + Math.random() * 0.5;
+            p.style.background = 'rgba(255,255,255,' + (0.65 + brightness * 0.3).toFixed(2) + ')';
+            layer.appendChild(p);
+        }
+    }
+
+    function applyBgMode(){
+        if (bgMode === 'particles') {
+            // 灰黑色渐变背景
+            el.skyBg.style.background = 'linear-gradient(180deg, #16181f 0%, #1c1f27 50%, #0e1014 100%)';
+            lastSkyKey = 'particles'; // 锁定，防止 tickSky 覆盖
+            el.particleLayer.classList.add('show');
+            createParticles();
+            // 隐藏太阳月亮
+            if (el.sun) { el.sun.style.opacity = '0'; el.sun.style.transform = 'translate(0px, 0px)'; }
+            if (el.moon) { el.moon.style.opacity = '0'; el.moon.style.transform = 'translate(0px, 0px)'; }
+            // 隐藏星星雨滴
+            if (starsLayer) starsLayer.classList.remove('show');
+            if (rainLayer) rainLayer.classList.remove('show');
+            // 移除白天主题
+            document.body.classList.remove('day-theme');
+        } else {
+            // 恢复自动：让 tickSky 重新计算
+            el.particleLayer.classList.remove('show');
+            lastSkyKey = '';
+            lastSkyUpdate = 0;
+            tickSky(true);
+        }
+    }
+
+    /* ============================================================
+     * 三、星空 / 雨滴图层（自动背景使用）
+     * ============================================================ */
     function createStars(){
         if (starsLayer) return;
         starsLayer = document.createElement('div');
@@ -1681,6 +1814,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function syncSkyElements(){
+        if (bgMode === 'particles') return; // 微粒模式不使用星空雨滴
         const now = Date.now();
         const rise = sunriseTs || new Date().setHours(7, 0, 0, 0);
         const set = sunsetTs || new Date().setHours(19, 0, 0, 0);
@@ -1731,6 +1865,9 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     function tickSky(force){
         if (!el.skyBg) return;
+        // 微粒模式：跳过天空颜色更新
+        if (bgMode === 'particles') return;
+
         const nowMs = Date.now();
         if (!force && nowMs - lastSkyUpdate < 20000) return;
         lastSkyUpdate = nowMs;
@@ -1838,16 +1975,21 @@ document.addEventListener('DOMContentLoaded', function(){
         tickExam();
     }
 
-    // ===== 每日一言（已改回原 UAPI 接口）=====
+    /* ============================================================
+     * 每日一言：三级降级，每级都过滤现代中文
+     * ============================================================ */
     async function fetchSayingFromUapi(){
         try {
             const res = await fetchWithTimeout('https://uapis.cn/api/v1/saying/random?mode=daily', 8000);
             if (!res.ok) return null;
             const json = await res.json();
-            if (json.item && typeof json.item.content === 'string' && json.item.content.trim()) return json.item.content.trim();
-            if (typeof json.content === 'string' && json.content.trim()) return json.content.trim();
-            if (typeof json.text === 'string' && json.text.trim()) return json.text.trim();
-        } catch(e) {}
+            let text = null;
+            if (json.item && typeof json.item.content === 'string' && json.item.content.trim()) text = json.item.content.trim();
+            else if (typeof json.content === 'string' && json.content.trim()) text = json.content.trim();
+            else if (typeof json.text === 'string' && json.text.trim()) text = json.text.trim();
+            if (text && isModernChinese(text)) return text;
+            if (text) console.warn('[一言·UAPI] 非现代中文，跳过:', text.slice(0, 50));
+        } catch(e) { console.warn('[一言·UAPI] 失败:', e.message); }
         return null;
     }
     async function fetchSayingFromHitokoto(){
@@ -1855,8 +1997,10 @@ document.addEventListener('DOMContentLoaded', function(){
             const res = await fetchWithTimeout('https://v1.hitokoto.cn/', 8000);
             if (!res.ok) return null;
             const json = await res.json();
-            if (json && typeof json.hitokoto === 'string' && json.hitokoto.trim()) return json.hitokoto.trim();
-        } catch(e) {}
+            const text = json && typeof json.hitokoto === 'string' ? json.hitokoto.trim() : null;
+            if (text && isModernChinese(text)) return text;
+            if (text) console.warn('[一言·Hitokoto] 非现代中文，跳过:', text.slice(0, 50));
+        } catch(e) { console.warn('[一言·Hitokoto] 失败:', e.message); }
         return null;
     }
     async function fetchSayingFromYviii(){
@@ -1864,8 +2008,10 @@ document.addEventListener('DOMContentLoaded', function(){
             const res = await fetchWithTimeout('https://api.yviii.com/yiyan/yi.php', 8000);
             if (!res.ok) return null;
             const text = await res.text();
-            if (text && text.trim()) return text.trim();
-        } catch(e) {}
+            const t = text ? text.trim() : '';
+            if (t && isModernChinese(t)) return t;
+            if (t) console.warn('[一言·YVIII] 非现代中文，跳过:', t.slice(0, 50));
+        } catch(e) { console.warn('[一言·YVIII] 失败:', e.message); }
         return null;
     }
     async function fetchDailySaying(){
@@ -1936,7 +2082,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     cachedText = localStorage.getItem(STORAGE.SAYING);
                     cachedDate = localStorage.getItem(STORAGE.SAYING_DATE);
                 } catch(e) {}
-                if (cachedText === STATIC_SENTENCE) {
+                // 旧缓存若是静态句子或非现代中文，则丢弃
+                if (cachedText && (cachedText === STATIC_SENTENCE || !isModernChinese(cachedText))) {
                     try {
                         localStorage.removeItem(STORAGE.SAYING);
                         localStorage.removeItem(STORAGE.SAYING_DATE);
@@ -2403,9 +2550,14 @@ document.addEventListener('DOMContentLoaded', function(){
         el.clockWeightValue.textContent = v;
         applyClockWeight(v);
     });
-    el.clockWeight.addEventListener('change', () => {
+    el.clockWeight.addEventListener('change', saveSettings);
+
+    // 背景模式切换
+    [el.bgAuto, el.bgParticles].forEach(r => r.addEventListener('change', () => {
+        bgMode = document.querySelector('input[name="bgMode"]:checked').value;
         saveSettings();
-    });
+        applyBgMode();
+    }));
 
     function applyPanelVisible(){
         el.itemCountdown.style.display = el.showCountdown.checked ? 'flex' : 'none';
@@ -2535,7 +2687,6 @@ document.addEventListener('DOMContentLoaded', function(){
         el.countdownProgressText.textContent = fmtCount(0);
         clearCountdownState();
     }
-
     el.startBtn.addEventListener('click', (e) => { e.stopPropagation(); startCountdown(); });
     el.pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); pauseCountdown(); });
 
@@ -2586,14 +2737,12 @@ document.addEventListener('DOMContentLoaded', function(){
         el.timerMarkLog.appendChild(div);
         el.timerMarkLog.scrollTop = el.timerMarkLog.scrollHeight;
     });
-
     el.timerClearMarksBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!el.timerMarkLog.children.length) { toast('暂无标记'); return; }
         el.timerMarkLog.innerHTML = '';
         toast('标记已清除');
     });
-
     let timerClearPending = false;
     el.timerClearBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2613,11 +2762,10 @@ document.addEventListener('DOMContentLoaded', function(){
         setTimeout(() => { timerClearPending = false; }, 3000);
     });
 
-    // 番茄钟（新增进度条支持）
+    // 番茄钟
     function updatePomoDisplay(){
         el.pomodoroCountStr.textContent = fmtMinSec(pomoRemain);
         el.pomodoroTopInline.textContent = '番茄：' + fmtMinSec(pomoRemain) + '【' + (pomoIsWork ? '工作' : '休息') + '】';
-        // 更新主屏幕进度条
         const total = pomoIsWork ? pomoWork : pomoRest;
         const elapsed = total - pomoRemain;
         const pct = total > 0 ? Math.min(100, Math.max(0, elapsed / total * 100)) : 0;
@@ -2643,7 +2791,6 @@ document.addEventListener('DOMContentLoaded', function(){
         updatePomoDisplay();
         pomoRunning = true;
         pomoFired = false;
-        // 显示主屏幕进度条
         el.pomodoroProgressWrap.classList.add('show');
         savePomoState();
         startPomoTick();
@@ -2669,7 +2816,6 @@ document.addEventListener('DOMContentLoaded', function(){
         pomoRunning = false;
         clearPomoState();
         loadPomo();
-        // 隐藏主屏幕进度条
         el.pomodoroProgressWrap.classList.remove('show');
         el.pomodoroProgressFill.style.width = '0%';
     });
@@ -2888,6 +3034,11 @@ document.addEventListener('DOMContentLoaded', function(){
     firstPaint();
     scheduleTick();
     initWeather();
+
+    // 应用背景模式（覆盖默认天空）
+    if (bgMode === 'particles') {
+        applyBgMode();
+    }
 
     let devNoteSeen = false, tutorialSeen = false;
     try {
